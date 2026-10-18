@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -55,10 +55,16 @@ namespace CSS.Packets.Messages.Client
 
                             if (Command != null)
                             {
-                                Command.Decode();
-                                Command.Process();
-
-                                this.LCommands.Add(Command);
+                                try
+                                {
+                                    Command.Decode();
+                                    Command.Process();
+                                    this.LCommands.Add(Command);
+                                }
+                                catch (Exception cmdEx)
+                                {
+                                    Logger.Write($"[CMD] Exception while executing command {CommandID}: {cmdEx.Message}");
+                                }
                             }
                         }
                         else

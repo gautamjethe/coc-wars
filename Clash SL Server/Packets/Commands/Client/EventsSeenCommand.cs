@@ -1,4 +1,5 @@
-﻿using CSS.Helpers.Binary;
+using System;
+using CSS.Helpers.Binary;
 
 namespace CSS.Packets.Commands.Client
 {
@@ -8,14 +9,29 @@ namespace CSS.Packets.Commands.Client
         {
         }
 
+        public int UnknownID;
         public int Tick;
 
-        public int UnknownID;
+        internal override void Decode()
+        {
+            try
+            {
+                if (this.Reader != null && this.Reader.BaseStream != null)
+                {
+                    if (this.Reader.BaseStream.Position + 4 <= this.Reader.BaseStream.Length)
+                        this.UnknownID = this.Reader.ReadInt32();
+
+                    if (this.Reader.BaseStream.Position + 4 <= this.Reader.BaseStream.Length)
+                        this.Tick = this.Reader.ReadInt32();
+                }
+            }
+            catch (Exception)
+            {
+            }
+        }
 
         internal override void Process()
         {
-            this.UnknownID = this.Reader.ReadInt32();
-            this.Tick = this.Reader.ReadInt32();
         }
     }
 }

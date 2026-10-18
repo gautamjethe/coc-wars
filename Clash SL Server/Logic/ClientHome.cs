@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.IO;
 using CSS.Helpers;
 using CSS.Helpers.List;
 
@@ -11,10 +13,44 @@ namespace CSS.Logic
         internal int ShieldTime;
         internal int ProtectionTime;
 
+        private static string s_calendarJson = null;
+
+        public static string GetCalendarJson()
+        {
+            if (s_calendarJson == null)
+            {
+                try
+                {
+                    string path = "calendar.json";
+                    if (!File.Exists(path) && File.Exists("Gamefiles/calendar.json"))
+                    {
+                        path = "Gamefiles/calendar.json";
+                    }
+
+                    if (File.Exists(path))
+                    {
+                        string content = File.ReadAllText(path).Trim();
+                        if (content.Contains("\"events\""))
+                        {
+                            s_calendarJson = content;
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                }
+
+                if (string.IsNullOrEmpty(s_calendarJson))
+                {
+                    s_calendarJson = "{\"events\":[]}";
+                }
+            }
+            return s_calendarJson;
+        }
+
         public ClientHome()
         {
         }
-
 
         public byte[] Encode
         {
@@ -28,7 +64,7 @@ namespace CSS.Logic
 
                 data.AddInt(0);
                 data.AddCompressed(Village);
-                data.AddCompressed("{\"event\":[]}");
+                data.AddCompressed(GetCalendarJson());
                 return data.ToArray();
             }
         }
