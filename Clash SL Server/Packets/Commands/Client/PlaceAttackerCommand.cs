@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using CSS.Files.Logic;
 using CSS.Helpers.Binary;
 using CSS.Logic;
@@ -26,7 +26,7 @@ namespace CSS.Packets.Commands.Client
 
         internal override void Process()
         {
-            if (this.Device.PlayerState == State.IN_BATTLE)
+            if (this.Device.PlayerState == State.IN_BATTLE || this.Device.PlayerState == State.WAR_EMODE)
             {
                 List<DataSlot> _PlayerUnits = this.Device.Player.Avatar.GetUnits();
 
@@ -34,6 +34,11 @@ namespace CSS.Packets.Commands.Client
                 if (_DataSlot != null)
                 {
                     _DataSlot.Value = _DataSlot.Value - 1;
+                }
+
+                if (this.Device.PlayerState == State.WAR_EMODE && Unit != null)
+                {
+                    ClanWarManager.TrackTroopDeployment(this.Device.Player.Avatar.UserId, Unit.GetHousingSpace());
                 }
             }
         }

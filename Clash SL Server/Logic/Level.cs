@@ -21,6 +21,10 @@ namespace CSS.Logic
             this.Avatar = new ClientAvatar();
         }
 
+        public Level(long id) : this(id, null)
+        {
+        }
+
         public Level(long id, string token)
         {
             this.WorkerManager = new WorkerManager();

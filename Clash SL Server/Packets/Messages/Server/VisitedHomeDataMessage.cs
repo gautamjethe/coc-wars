@@ -19,12 +19,30 @@ namespace CSS.Packets.Messages.Server
         {
             try
             {
+                string villageJson = m_vOwnerLevel.SaveToJSON();
+                var war = ClanWarManager.GetWarByClanId(m_vVisitorLevel.Avatar.AllianceId);
+                if (war != null && war.GetMember(m_vOwnerLevel.Avatar.UserId) != null)
+                {
+                    if (villageJson.Contains("\"war_base\":false"))
+                    {
+                        villageJson = villageJson.Replace("\"war_base\":false", "\"war_base\":true");
+                    }
+                    else if (!villageJson.Contains("\"war_base\":true") && !villageJson.Contains("\"war_base\": true"))
+                    {
+                        int lastBrace = villageJson.LastIndexOf('}');
+                        if (lastBrace > 0)
+                        {
+                            villageJson = villageJson.Substring(0, lastBrace) + ",\"war_base\":true}";
+                        }
+                    }
+                }
+
                 ClientHome ownerHome = new ClientHome
                 {
                     Id = m_vOwnerLevel.Avatar.UserId,
                     ShieldTime = m_vOwnerLevel.Avatar.m_vShieldTime,
                     ProtectionTime = m_vOwnerLevel.Avatar.m_vProtectionTime,
-                    Village = m_vOwnerLevel.SaveToJSON()
+                    Village = villageJson
                 };
 
                 this.Data.AddInt(-1);

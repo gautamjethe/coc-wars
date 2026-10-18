@@ -37,11 +37,22 @@ namespace CSS.Packets.Messages.Client
                 int scores = player.GetScore();
                 Resources(_level, scores);
                 
+                if (ClanWarManager.ActiveBattles.ContainsKey(player.UserId))
+                {
+                    ClanWarManager.FinalizeBattle(player.UserId);
+                }
+
                 if (State == 1)
                 {
                     this.Device.PlayerState = Logic.Enums.State.WAR_EMODE;
                     this.Device.Player.Tick();
                     new OwnHomeDataMessage(this.Device, this.Device.Player).Send();
+
+                    var war = ClanWarManager.GetWarByClanId(this.Device.Player.Avatar.AllianceId);
+                    if (war != null)
+                    {
+                        new AllianceWarMapDataMessage(this.Device, war).Send();
+                    }
                 }
                 else if (this.Device.PlayerState == Logic.Enums.State.LOGGED)
                 {

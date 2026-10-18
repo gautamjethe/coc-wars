@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+    <metadata>
+        <id>SevenZip.SDK</id>
+        <version>1.0.0</version>
+        <authors>David</authors>
+        <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <description>SevenZip SDK
+7zip
+lzma 9.22 beta</description>
+        <tags>sevenZip 7zip</tags>
+    </metadata>
+</package>

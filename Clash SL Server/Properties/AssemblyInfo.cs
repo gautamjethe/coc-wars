@@ -7,10 +7,12 @@ using System.Windows;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Sky Production")]
 [assembly: AssemblyProduct("Clash SL Server")]
-[assembly: AssemblyCopyright("Copyright ©  2024")]
+[assembly: AssemblyCopyright("Copyright Â©  2024")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 [assembly: ComVisible(true)]
 
 [assembly: AssemblyVersion("0.7.3.5")]
 [assembly: AssemblyFileVersion("0.7.3.5")]
+
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("test_clan_wars")]

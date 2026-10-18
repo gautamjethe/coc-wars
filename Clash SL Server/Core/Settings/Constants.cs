@@ -11,7 +11,7 @@ namespace CSS.Core.Settings
         public static string Version                 = Assembly.GetExecutingAssembly().GetName().Version.ToString();
         public static string Build                   = "7";
         
-        public static readonly bool UseCacheServer   = Utils.ParseConfigBoolean("CacheServer");
+        public static bool UseCacheServer            = Utils.ParseConfigBoolean("CacheServer");
         public const bool Local = false;
 
         public const int CleanInterval               = 6000;

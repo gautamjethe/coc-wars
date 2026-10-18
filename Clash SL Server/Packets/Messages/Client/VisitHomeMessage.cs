@@ -27,9 +27,40 @@ namespace CSS.Packets.Messages.Client
             try
             {
                 Level targetLevel = await ResourcesManager.GetPlayer(AvatarId);
-                targetLevel.Tick();
-                new VisitedHomeDataMessage(Device, targetLevel, this.Device.Player).Send();
+                if (targetLevel == null && this.Device?.Player?.Avatar?.AllianceId > 0)
+                {
+                    // Check if AvatarId is an AI member in the active clan war
+                    var war = ClanWarManager.GetWarByClanId(this.Device.Player.Avatar.AllianceId);
+                    var warMember = war?.GetMember(AvatarId);
+                    if (warMember != null)
+                    {
+                        var clan = war.GetClan(warMember.ClanId);
+                        targetLevel = new Level(AvatarId);
+                        if (!string.IsNullOrEmpty(warMember.VillageJson))
+                        {
+                            targetLevel.LoadFromJSON(warMember.VillageJson);
+                        }
+                        else
+                        {
+                            targetLevel.LoadFromJSON(ClanWarManager.GetPresetBase(warMember.TownHallLevel));
+                        }
+                        targetLevel.Avatar.UserId = AvatarId;
+                        targetLevel.Avatar.CurrentHomeId = AvatarId;
+                        targetLevel.Avatar.AvatarName = warMember.Name;
+                        targetLevel.Avatar.m_vTownHallLevel = warMember.TownHallLevel;
+                        targetLevel.Avatar.AllianceId = warMember.ClanId;
+                    }
+                }
 
+                if (targetLevel != null)
+                {
+                    targetLevel.Tick();
+                    new VisitedHomeDataMessage(Device, targetLevel, this.Device.Player).Send();
+                }
+                else
+                {
+                    new OutOfSyncMessage(Device).Send();
+                }
 
                 if (this.Device.Player.Avatar.AllianceId > 0)
                 {

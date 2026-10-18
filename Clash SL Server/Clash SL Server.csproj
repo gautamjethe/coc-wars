@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
@@ -59,7 +59,7 @@
     <Prefer32Bit>false</Prefer32Bit>
     <PostSharpRuntimeVerificationEnabled>True</PostSharpRuntimeVerificationEnabled>
     <PostSharpConstraintVerificationEnabled>True</PostSharpConstraintVerificationEnabled>
-    <LangVersion>6</LangVersion>
+    <LangVersion>7.3</LangVersion>
     <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
     <FileAlignment>1024</FileAlignment>
     <DocumentationFile>
@@ -98,7 +98,7 @@
     <Prefer32Bit>true</Prefer32Bit>
     <Optimize>false</Optimize>
     <WarningLevel>4</WarningLevel>
-    <LangVersion>6</LangVersion>
+    <LangVersion>7.3</LangVersion>
     <FileAlignment>1024</FileAlignment>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
@@ -113,7 +113,7 @@
     <Prefer32Bit>true</Prefer32Bit>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <WarningLevel>0</WarningLevel>
-    <LangVersion>6</LangVersion>
+    <LangVersion>7.3</LangVersion>
     <FileAlignment>1024</FileAlignment>
   </PropertyGroup>
   <PropertyGroup />
@@ -346,6 +346,7 @@
     <Compile Include="Packets\GameOpCommands\HelpGameOpCommand.cs" />
     <Compile Include="Packets\GameOpCommands\MaxBaseGameOpCommand.cs" />
     <Compile Include="Packets\GameOpCommands\ServerStatusGameOpCommand.cs" />
+    <Compile Include="Packets\GameOpCommands\WarGameOpCommand.cs" />
     <Compile Include="Packets\Messages\Client\AddClashFriendMessage.cs" />
     <Compile Include="Packets\Messages\Client\ChallangeAttackMessage.cs" />
     <Compile Include="Packets\Messages\Client\ChallangeCancelMessage.cs" />
@@ -1371,12 +1372,12 @@
     </PropertyGroup>
     <Error Condition="!Exists('..\packages\Baseclass.Contrib.Nuget.Output.2.2.0-xbuild02\build\net40\Baseclass.Contrib.Nuget.Output.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Baseclass.Contrib.Nuget.Output.2.2.0-xbuild02\build\net40\Baseclass.Contrib.Nuget.Output.targets'))" />
   </Target>
-  <PropertyGroup>
+  <PropertyGroup Condition=" '$(OS)' == 'Windows_NT' ">
     <PreBuildEvent>if not exist "$(TargetDir)Logs" mkdir "$(TargetDir)Logs"
 if not exist "$(TargetDir)Patch" mkdir "$(TargetDir)Patch"
 if not exist "$(TargetDir)Library" mkdir "$(TargetDir)Library"</PreBuildEvent>
   </PropertyGroup>
-  <PropertyGroup>
+  <PropertyGroup Condition=" '$(OS)' == 'Windows_NT' ">
     <PostBuildEvent>cd $(OutDir)
 move *.dll Library\
 move x64 Library\

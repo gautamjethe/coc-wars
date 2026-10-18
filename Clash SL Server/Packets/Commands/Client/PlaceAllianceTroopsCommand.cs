@@ -1,4 +1,4 @@
-﻿using CSS.Helpers.Binary;
+using CSS.Helpers.Binary;
 using CSS.Logic;
 
 namespace CSS.Packets.Commands.Client
@@ -23,8 +23,14 @@ namespace CSS.Packets.Commands.Client
 
             if (_Player != null)
             {
+                int ccUsed = _Player.AllianceUnits.Count > 0 ? 25 : 0;
                 _Player.AllianceUnits.Clear();
                 _Player.SetAllianceCastleUsedCapacity(0);
+
+                if (this.Device.PlayerState == Logic.Enums.State.WAR_EMODE && ccUsed > 0)
+                {
+                    ClanWarManager.TrackTroopDeployment(_Player.UserId, ccUsed);
+                }
             }
         }
     }

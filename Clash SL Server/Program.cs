@@ -24,36 +24,42 @@ namespace CSS
 
         internal static void Main()
         {
-            int GWL_EXSTYLE = -20;
-            int WS_EX_LAYERED = 0x80000;
-            uint LWA_ALPHA = 0x2;
-            IntPtr Handle = GetConsoleWindow();
-            SetWindowLong(Handle, GWL_EXSTYLE, (int)GetWindowLong(Handle, GWL_EXSTYLE) ^ WS_EX_LAYERED);
-            Console.SetWindowSize(92,32);
-
-            if (Utils.ParseConfigBoolean("Animation"))
+            if (Environment.OSVersion.Platform == PlatformID.Win32NT)
             {
-
-                new Thread(() =>
+                try
                 {
-                    for (int i = 20; i < 227; i++)
+                    int GWL_EXSTYLE = -20;
+                    int WS_EX_LAYERED = 0x80000;
+                    uint LWA_ALPHA = 0x2;
+                    IntPtr Handle = GetConsoleWindow();
+                    SetWindowLong(Handle, GWL_EXSTYLE, (int)GetWindowLong(Handle, GWL_EXSTYLE) ^ WS_EX_LAYERED);
+                    Console.SetWindowSize(92, 32);
+
+                    if (Utils.ParseConfigBoolean("Animation"))
                     {
-                        if (i < 100)
+                        new Thread(() =>
                         {
-                            SetLayeredWindowAttributes(Handle, 0, (byte)i, LWA_ALPHA);
-                            Thread.Sleep(5);
-                        }
-                        else
-                        {
-                            SetLayeredWindowAttributes(Handle, 0, (byte)i, LWA_ALPHA);
-                            Thread.Sleep(15);
-                        }
+                            for (int i = 20; i < 227; i++)
+                            {
+                                if (i < 100)
+                                {
+                                    SetLayeredWindowAttributes(Handle, 0, (byte)i, LWA_ALPHA);
+                                    Thread.Sleep(5);
+                                }
+                                else
+                                {
+                                    SetLayeredWindowAttributes(Handle, 0, (byte)i, LWA_ALPHA);
+                                    Thread.Sleep(15);
+                                }
+                            }
+                        }).Start();
                     }
-                }).Start();
-            }
-            else
-            {
-                SetLayeredWindowAttributes(Handle, 0, 227, LWA_ALPHA);
+                    else
+                    {
+                        SetLayeredWindowAttributes(Handle, 0, 227, LWA_ALPHA);
+                    }
+                }
+                catch (Exception) { }
             }
 
             if (Constants.LicensePlanID == 3)
@@ -110,15 +116,17 @@ namespace CSS
                 Console.ForegroundColor = ConsoleColor.Green;
                 Say("Preparing Server...\n");
                 Resources.Initialize();
+                Thread.Sleep(Timeout.Infinite);
             }
             else if (Version == "Error")
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("> An Error occured when requesting the Version number.");
-                Console.WriteLine();
-                Logger.Say("Aborting...");
-                Thread.Sleep(5000);
-                Environment.Exit(0);
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine($"> Warning: Could not verify online version. Running local version: {Constants.Version}");
+                Console.ResetColor();
+                Console.ForegroundColor = ConsoleColor.Green;
+                Say("Preparing Server...\n");
+                Resources.Initialize();
+                Thread.Sleep(Timeout.Infinite);
             }
             else
             {

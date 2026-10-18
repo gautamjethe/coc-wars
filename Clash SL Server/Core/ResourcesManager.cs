@@ -16,19 +16,19 @@ namespace CSS.Core
 {
     internal class ResourcesManager : IDisposable
     {
-        internal static ConcurrentDictionary<IntPtr, Device> m_vClients = null;
-        internal static ConcurrentDictionary<long, Level> m_vInMemoryLevels = null;
-        internal static ConcurrentDictionary<long, Alliance> m_vInMemoryAlliances = null;
-        internal static List<Level> m_vOnlinePlayers = null;
+        internal static ConcurrentDictionary<IntPtr, Device> m_vClients = new ConcurrentDictionary<IntPtr, Device>();
+        internal static ConcurrentDictionary<long, Level> m_vInMemoryLevels = new ConcurrentDictionary<long, Level>();
+        internal static ConcurrentDictionary<long, Alliance> m_vInMemoryAlliances = new ConcurrentDictionary<long, Alliance>();
+        internal static List<Level> m_vOnlinePlayers = new List<Level>();
         private static DatabaseManager m_vDatabase = null;
 
         public ResourcesManager()
         {
             m_vDatabase = new DatabaseManager();
-            m_vOnlinePlayers = new List<Level>();
-            m_vClients = new ConcurrentDictionary<IntPtr, Device>();
-            m_vInMemoryLevels = new ConcurrentDictionary<long, Level>();
-            m_vInMemoryAlliances = new ConcurrentDictionary<long, Alliance>();
+            if (m_vOnlinePlayers == null) m_vOnlinePlayers = new List<Level>();
+            if (m_vClients == null) m_vClients = new ConcurrentDictionary<IntPtr, Device>();
+            if (m_vInMemoryLevels == null) m_vInMemoryLevels = new ConcurrentDictionary<long, Level>();
+            if (m_vInMemoryAlliances == null) m_vInMemoryAlliances = new ConcurrentDictionary<long, Alliance>();
         }
 
         public static void AddClient(Socket _Socket)
@@ -90,7 +90,7 @@ namespace CSS.Core
         public static async Task<Level> GetPlayer(long id, bool persistent = false)
         {
             Level result = GetInMemoryPlayer(id);
-            if (result == null)
+            if (result == null && m_vDatabase != null)
             {
                 result = await m_vDatabase.GetAccount(id);
                 if (persistent)

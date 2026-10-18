@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using CSS.Packets.GameOpCommands;
 
@@ -30,6 +30,7 @@ namespace CSS.Packets
             m_vCommands.Add("/status", typeof(ServerStatusGameOpCommand));
             m_vCommands.Add("/help", typeof(HelpGameOpCommand));
             m_vCommands.Add("/accinfo", typeof(AccountInformationGameOpCommand));
+            m_vCommands.Add("/war", typeof(WarGameOpCommand));
         }
 
         public static object Parse(string command)

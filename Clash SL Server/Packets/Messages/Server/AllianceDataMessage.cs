@@ -22,11 +22,23 @@ namespace CSS.Packets.Messages.Server
                 var allianceMembers = m_vAlliance.GetAllianceMembers();
 
                 this.Data.AddRange(m_vAlliance.EncodeFullEntry());
-                this.Data.AddString(m_vAlliance.m_vAllianceDescription);
+                this.Data.AddString(m_vAlliance.m_vAllianceDescription ?? "");
+
+                ClanWar war = ClanWarManager.GetWarByClanId(m_vAlliance.m_vAllianceId);
+                int warState = war != null ? (int)war.State : m_vAlliance.m_vWarState;
+
+                this.Data.AddInt(warState);
+                if (war != null && war.State != ClanWarState.NOT_IN_WAR)
+                {
+                    this.Data.Add((byte)1);
+                    this.Data.AddLong(war.WarId);
+                }
+                else
+                {
+                    this.Data.Add((byte)0);
+                }
                 this.Data.AddInt(0);
-                this.Data.Add(0);
-                this.Data.AddInt(0);
-                this.Data.Add(0);
+                this.Data.Add((byte)0);
 
                 this.Data.AddInt(allianceMembers.Count);
 
@@ -38,7 +50,10 @@ namespace CSS.Packets.Messages.Server
                 this.Data.AddInt(0);
                 this.Data.AddInt(32);
             }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                Core.Logger.Write($"[Error] AllianceDataMessage error: {ex.Message}");
+            }
         }
     }
 }

@@ -32,6 +32,8 @@ namespace CSS.Logic
         internal byte m_vWarLogPublic;
         internal int m_vWonWars;
         internal byte m_vFriendlyWar;
+        internal int m_vWarState;
+        internal long m_vActiveWarId;
 
         public Alliance()
         {

@@ -31,18 +31,32 @@ namespace CSS.Core
 
         public static long GetPhysicalAvailableMemoryInMiB()
         {
-            var pi = new PerformanceInformation();
-            if (GetPerformanceInfo(out pi, Marshal.SizeOf(pi)))
-                return Convert.ToInt64(pi.PhysicalAvailable.ToInt64() * pi.PageSize.ToInt64() / 1048576);
-            return -1;
+            if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+            {
+                try
+                {
+                    var pi = new PerformanceInformation();
+                    if (GetPerformanceInfo(out pi, Marshal.SizeOf(pi)))
+                        return Convert.ToInt64(pi.PhysicalAvailable.ToInt64() * pi.PageSize.ToInt64() / 1048576);
+                }
+                catch { }
+            }
+            return 4096;
         }
 
         public static long GetTotalMemoryInMiB()
         {
-            var pi = new PerformanceInformation();
-            if (GetPerformanceInfo(out pi, Marshal.SizeOf(pi)))
-                return Convert.ToInt64(pi.PhysicalTotal.ToInt64() * pi.PageSize.ToInt64() / 1048576);
-            return -1;
+            if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+            {
+                try
+                {
+                    var pi = new PerformanceInformation();
+                    if (GetPerformanceInfo(out pi, Marshal.SizeOf(pi)))
+                        return Convert.ToInt64(pi.PhysicalTotal.ToInt64() * pi.PageSize.ToInt64() / 1048576);
+                }
+                catch { }
+            }
+            return 8192;
         }
     }
 
@@ -52,6 +66,7 @@ namespace CSS.Core
         {
             var phav = PerformanceInfo.GetPhysicalAvailableMemoryInMiB();
             var tot = PerformanceInfo.GetTotalMemoryInMiB();
+            if (tot <= 0) return "50.00";
             var percentFree = phav / (decimal) tot * 100;
             return percentFree.ToString("##.##");
         }
@@ -64,6 +79,7 @@ namespace CSS.Core
         {
             var phav = PerformanceInfo.GetPhysicalAvailableMemoryInMiB();
             var tot = PerformanceInfo.GetTotalMemoryInMiB();
+            if (tot <= 0) return "50.00";
             var percentFree = phav / (decimal) tot * 100;
             var percentOccupied = 100 - percentFree;
             return percentOccupied.ToString("##.##");

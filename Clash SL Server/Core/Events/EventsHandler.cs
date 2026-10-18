@@ -1,4 +1,4 @@
-﻿
+
 namespace CSS.Core.Events
 {
 
@@ -22,8 +22,24 @@ namespace CSS.Core.Events
         internal EventsHandler()
         {
             EventsHandler.EHandler += this.Handler;
-            EventsHandler.SetConsoleCtrlHandler(EventsHandler.EHandler, true);
+            if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+            {
+                try
+                {
+                    EventsHandler.SetConsoleCtrlHandler(EventsHandler.EHandler, true);
+                }
+                catch { }
+            }
+            Console.CancelKeyPress += (sender, args) =>
+            {
+                this.Handler();
+            };
+            AppDomain.CurrentDomain.ProcessExit += (sender, args) =>
+            {
+                this.Handler();
+            };
         }
+
         [DllImport("Kernel32")]
         private static extern bool SetConsoleCtrlHandler(EventHandler Handler, bool Enabled);
 

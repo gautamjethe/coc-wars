@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using CSS.Files.Logic;
 using CSS.Helpers.Binary;
 using CSS.Logic;
@@ -28,6 +28,11 @@ namespace CSS.Packets.Commands
             if (_DataSlot != null)
             {
                 _DataSlot.Value = _DataSlot.Value - 1;
+            }
+
+            if (this.Device.PlayerState == Logic.Enums.State.WAR_EMODE && this.Device.Player != null)
+            {
+                ClanWarManager.TrackTroopDeployment(this.Device.Player.Avatar.UserId, 10);
             }
         }
 

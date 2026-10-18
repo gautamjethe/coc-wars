@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using CSS.Helpers.List;
 using CSS.Logic;
 
@@ -16,38 +16,54 @@ namespace CSS.Packets.Messages.Server
 
         internal override void Encode()
         {
-            this.Data.AddInt(1);
+            if (m_vHomeAlliance == null)
+            {
+                this.Data.AddInt(0);
+                return;
+            }
 
-            this.Data.AddLong(m_vHomeAlliance.m_vAllianceId); // 1 Alliance ID
-            this.Data.AddString(m_vHomeAlliance.m_vAllianceName); // 1 Alliance Name
-            this.Data.AddInt(m_vHomeAlliance.m_vAllianceBadgeData); // 1 Alliance Badge
-            this.Data.AddInt(m_vHomeAlliance.m_vAllianceLevel); // 1 Alliance Level
+            var history = ClanWarManager.GetWarHistory(m_vHomeAlliance.m_vAllianceId);
+            this.Data.AddInt(history.Count);
 
-            this.Data.AddLong(9999); // 2 Alliance ID
-            this.Data.AddString("CSS"); // 2 Alliance Name
-            this.Data.AddInt(0); // 2 Alliance Badge
-            this.Data.AddInt(1); // 2 Alliance Level
+            foreach (var war in history)
+            {
+                var homeClan = war.GetClan(m_vHomeAlliance.m_vAllianceId) ?? war.Clan1;
+                var enemyClan = war.GetOpponentClan(m_vHomeAlliance.m_vAllianceId) ?? war.Clan2;
+                if (homeClan == null || enemyClan == null) continue;
 
-            this.Data.AddInt(9999); // 1 Stars
-            this.Data.AddInt(0); // 2 Stars
+                this.Data.AddLong(homeClan.ClanId);
+                this.Data.AddString(homeClan.ClanName);
+                this.Data.AddInt(homeClan.ClanBadge);
+                this.Data.AddInt(homeClan.ClanLevel);
 
-            this.Data.AddInt(0); // 1 Village Destroyed
-            this.Data.AddInt(100); // 2 Village Destroyed
+                this.Data.AddLong(enemyClan.ClanId);
+                this.Data.AddString(enemyClan.ClanName);
+                this.Data.AddInt(enemyClan.ClanBadge);
+                this.Data.AddInt(enemyClan.ClanLevel);
 
-            this.Data.AddInt(0); // 1 Unknown
-            this.Data.AddInt(0); // 2 Unknown
+                this.Data.AddInt(homeClan.TotalStars);
+                this.Data.AddInt(enemyClan.TotalStars);
 
-            this.Data.AddInt(100); // Attack Used
-            this.Data.AddInt(4000); // XP Earned
+                this.Data.AddInt((int)homeClan.TotalDestruction);
+                this.Data.AddInt((int)enemyClan.TotalDestruction);
 
-            this.Data.AddLong(515631654); // War ID
-            this.Data.AddLong(40); // Members Count
+                this.Data.AddInt(0);
+                this.Data.AddInt(0);
 
-            this.Data.AddInt(1); // War Won Count
+                this.Data.AddInt(homeClan.AttacksUsed);
+                this.Data.AddInt(50 + homeClan.TotalStars * 5); // XP Earned
 
-            this.Data.Add(99);
-            this.Data.AddInt((int) TimeSpan.FromDays(1).TotalSeconds);
-            this.Data.AddLong((int) (TimeSpan.FromDays(1).TotalSeconds - TimeSpan.FromDays(0.5).TotalSeconds));
+                this.Data.AddLong(war.WarId);
+                this.Data.AddLong(war.WarSize);
+
+                bool won = homeClan.TotalStars > enemyClan.TotalStars || (homeClan.TotalStars == enemyClan.TotalStars && homeClan.TotalDestruction > enemyClan.TotalDestruction);
+                this.Data.AddInt(won ? 1 : 0);
+
+                this.Data.Add(99);
+                int timeAgo = (int)Math.Max(60, (DateTime.UtcNow - war.WarEndedTime).TotalSeconds);
+                this.Data.AddInt(timeAgo);
+                this.Data.AddLong(timeAgo);
+            }
         }
     }
 }

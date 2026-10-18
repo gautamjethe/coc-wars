@@ -31,7 +31,7 @@
   <!-- (Max 2000) This Function is only available for Ultra Users -->
       
   <!-- ____________________________________ CSS SETTINGS ____________________________________ -->
-  <add key="CacheServer" value="true" />
+  <add key="CacheServer" value="false" />
       <!-- Use Redis as cache server-->
   <add key="UseWebAPI" value="false" />
       <!-- Choose if you want to use the Web API-->
