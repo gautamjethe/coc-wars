@@ -7,6 +7,7 @@ using CSS.Logic;
 using Timer = System.Threading.Timer;
 using static CSS.Core.Logger;
 using CSS.Logic.Enums;
+using CSS.Core.Settings;
 
 namespace CSS.Core
 {
@@ -58,6 +59,7 @@ namespace CSS.Core
 
         private static void SaveRedis(object state)
         {
+            if (!Constants.UseCacheServer) return;
             m_vDatabase.Save(ResourcesManager.m_vInMemoryLevels.Values.ToList(), Save.Redis);
             m_vDatabase.Save(ResourcesManager.GetInMemoryAlliances(), Save.Redis);
         }

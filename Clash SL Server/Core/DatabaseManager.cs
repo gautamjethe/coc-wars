@@ -431,6 +431,7 @@ namespace CSS.Core
                 {
                     case Save.Redis:
                         {
+                            if (!Constants.UseCacheServer || Redis.Players == null) break;
                             foreach (Level pl in avatars)
                             {
                                 if (pl != null && pl.Avatar != null)
@@ -488,6 +489,7 @@ namespace CSS.Core
                 {
                     case Save.Redis:
                         {
+                            if (!Constants.UseCacheServer || Redis.Clans == null) break;
                             foreach (Alliance alliance in alliances)
                             {
                                 if (alliance != null)

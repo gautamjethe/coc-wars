@@ -14,36 +14,39 @@ namespace CSS.Logic
         internal int ProtectionTime;
 
         private static string s_calendarJson = null;
+        private static DateTime s_calendarLastModified = DateTime.MinValue;
 
         public static string GetCalendarJson()
         {
-            if (s_calendarJson == null)
+            try
             {
-                try
+                string path = "calendar.json";
+                if (!File.Exists(path) && File.Exists("Gamefiles/calendar.json"))
                 {
-                    string path = "calendar.json";
-                    if (!File.Exists(path) && File.Exists("Gamefiles/calendar.json"))
-                    {
-                        path = "Gamefiles/calendar.json";
-                    }
+                    path = "Gamefiles/calendar.json";
+                }
 
-                    if (File.Exists(path))
+                if (File.Exists(path))
+                {
+                    DateTime lastWrite = File.GetLastWriteTimeUtc(path);
+                    if (s_calendarJson == null || lastWrite > s_calendarLastModified)
                     {
                         string content = File.ReadAllText(path).Trim();
                         if (content.Contains("\"events\""))
                         {
                             s_calendarJson = content;
+                            s_calendarLastModified = lastWrite;
                         }
                     }
                 }
-                catch (Exception)
-                {
-                }
+            }
+            catch (Exception)
+            {
+            }
 
-                if (string.IsNullOrEmpty(s_calendarJson))
-                {
-                    s_calendarJson = "{\"events\":[]}";
-                }
+            if (string.IsNullOrEmpty(s_calendarJson))
+            {
+                return "{\"events\":[]}";
             }
             return s_calendarJson;
         }

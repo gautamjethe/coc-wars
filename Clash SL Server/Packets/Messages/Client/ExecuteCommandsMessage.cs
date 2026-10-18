@@ -47,6 +47,9 @@ namespace CSS.Packets.Messages.Client
                 {
                     for (int _Index = 0; _Index < this.Count; _Index++)
                     {
+                        if (Reader.BaseStream.Position + 4 > Reader.BaseStream.Length)
+                            break;
+
                         int CommandID = Reader.ReadInt32();
                         if (CommandFactory.Commands.ContainsKey(CommandID))
                         {

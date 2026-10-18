@@ -6,14 +6,32 @@
       "boomboxEntry": "CollectorBoost",
       "eventEntryName": "CollectorBoost",
       "inboxEntryId": 1,
-      "visibleTime": "20240101T000000.000Z",
-      "startTime": "20240101T000000.000Z",
-      "endTime": "20350101T000000.000Z",
+      "visibleTime": "20240101T",
+      "startTime": "20240101T",
+      "endTime": "20350101T",
       "showUpcoming": 0,
       "functions": [
-        { "name": "BuildingBoost", "parameters": [ "1000002", "1" ] },
-        { "name": "BuildingBoost", "parameters": [ "1000004", "1" ] },
-        { "name": "BuildingBoost", "parameters": [ "1000023", "1" ] }
+        {
+          "name": "BuildingBoost",
+          "parameters": [
+            "1000002",
+            "1"
+          ]
+        },
+        {
+          "name": "BuildingBoost",
+          "parameters": [
+            "1000004",
+            "1"
+          ]
+        },
+        {
+          "name": "BuildingBoost",
+          "parameters": [
+            "1000023",
+            "1"
+          ]
+        }
       ]
     },
     {
@@ -22,13 +40,23 @@
       "boomboxEntry": "ValentinesHeroBoost",
       "eventEntryName": "ValentinesHeroBoost",
       "inboxEntryId": 1,
-      "visibleTime": "20240101T000000.000Z",
-      "startTime": "20240101T000000.000Z",
-      "endTime": "20350101T000000.000Z",
+      "visibleTime": "20240101T",
+      "startTime": "20240101T",
+      "endTime": "20350101T",
       "showUpcoming": 0,
       "functions": [
-        { "name": "TroopTrainingBoost", "parameters": [ "1" ] },
-        { "name": "SpellBrewingBoost", "parameters": [ "1" ] }
+        {
+          "name": "TroopTrainingBoost",
+          "parameters": [
+            "1"
+          ]
+        },
+        {
+          "name": "SpellBrewingBoost",
+          "parameters": [
+            "1"
+          ]
+        }
       ]
     },
     {
@@ -37,12 +65,18 @@
       "boomboxEntry": "TroopDiscountDragon",
       "eventEntryName": "TroopDiscountDragon",
       "inboxEntryId": 1,
-      "visibleTime": "20240101T000000.000Z",
-      "startTime": "20240101T000000.000Z",
-      "endTime": "20350101T000000.000Z",
+      "visibleTime": "20240101T",
+      "startTime": "20240101T",
+      "endTime": "20350101T",
       "showUpcoming": 0,
       "functions": [
-        { "name": "TroopDiscount", "parameters": [ "4000008", "50" ] }
+        {
+          "name": "TroopDiscount",
+          "parameters": [
+            "4000008",
+            "50"
+          ]
+        }
       ]
     },
     {
@@ -51,12 +85,17 @@
       "boomboxEntry": "StarBonus",
       "eventEntryName": "StarBonus",
       "inboxEntryId": 1,
-      "visibleTime": "20240101T000000.000Z",
-      "startTime": "20240101T000000.000Z",
-      "endTime": "20350101T000000.000Z",
+      "visibleTime": "20240101T",
+      "startTime": "20240101T",
+      "endTime": "20350101T",
       "showUpcoming": 0,
       "functions": [
-        { "name": "StarBonusMultiplier", "parameters": [ "2" ] }
+        {
+          "name": "StarBonusMultiplier",
+          "parameters": [
+            "2"
+          ]
+        }
       ]
     },
     {
@@ -65,12 +104,18 @@
       "boomboxEntry": "TroopDiscountWizard",
       "eventEntryName": "TroopDiscountWizard",
       "inboxEntryId": 1,
-      "visibleTime": "20240101T000000.000Z",
-      "startTime": "20240101T000000.000Z",
-      "endTime": "20350101T000000.000Z",
+      "visibleTime": "20240101T",
+      "startTime": "20240101T",
+      "endTime": "20350101T",
       "showUpcoming": 0,
       "functions": [
-        { "name": "TroopDiscount", "parameters": [ "4000006", "50" ] }
+        {
+          "name": "TroopDiscount",
+          "parameters": [
+            "4000006",
+            "50"
+          ]
+        }
       ]
     },
     {
@@ -79,12 +124,18 @@
       "boomboxEntry": "SpellDiscountJump",
       "eventEntryName": "SpellDiscountJump",
       "inboxEntryId": 1,
-      "visibleTime": "20240101T000000.000Z",
-      "startTime": "20240101T000000.000Z",
-      "endTime": "20350101T000000.000Z",
+      "visibleTime": "20240101T",
+      "startTime": "20240101T",
+      "endTime": "20350101T",
       "showUpcoming": 0,
       "functions": [
-        { "name": "SpellDiscount", "parameters": [ "26000003", "50" ] }
+        {
+          "name": "SpellDiscount",
+          "parameters": [
+            "26000003",
+            "50"
+          ]
+        }
       ]
     }
   ]

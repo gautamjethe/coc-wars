@@ -1,4 +1,4 @@
-﻿using CSS.Helpers.Binary;
+using CSS.Helpers.Binary;
 
 namespace CSS.Packets.Commands.Client
 {
@@ -16,8 +16,20 @@ namespace CSS.Packets.Commands.Client
 
         internal override void Decode()
         {
-            this.Reader.ReadInt32();
-            this.Reader.ReadInt32();
+            try
+            {
+                if (this.Reader != null && this.Reader.BaseStream != null)
+                {
+                    if (this.Reader.BaseStream.Position + 4 <= this.Reader.BaseStream.Length)
+                        this.Unknown1 = this.Reader.ReadInt32();
+
+                    if (this.Reader.BaseStream.Position + 4 <= this.Reader.BaseStream.Length)
+                        this.Unknown2 = this.Reader.ReadInt32();
+                }
+            }
+            catch (System.Exception)
+            {
+            }
         }
 
         public int Unknown1 { get; set; }
