@@ -309,7 +309,7 @@ namespace CSS.Packets.Messages.Client
                 {
                     if (level.Avatar.AccountBanned)
                     {
-                        new LoginFailedMessage(Device) {ErrorCode = 11}.Send();
+                        new LoginFailedMessage(Device) {ErrorCode = 11, Reason = "You have been banned from the game."}.Send();
                         return;
                     }
                     if (string.Equals(level.Avatar.UserToken, UserToken, StringComparison.Ordinal))
@@ -318,35 +318,34 @@ namespace CSS.Packets.Messages.Client
                     }
                     else
                     {
-                        new LoginFailedMessage(Device)
-                        {
-                            ErrorCode = 11,
-                            Reason = "We have some Problems with your Account. Please clean your App Data."
-                        }.Send();
+                        Console.WriteLine($"[AUTH] UserID {UserID} token mismatch (DB: {level.Avatar.UserToken}, Client: {UserToken}). Re-initializing account.");
+                        NewUser();
                         return;
                     }
                 }
                 else
                 {
-                    new LoginFailedMessage(Device)
-                    {
-                        ErrorCode = 11,
-                        Reason = "We have some Problems with your Account. Please clean your App Data."
-                    }.Send();
+                    Console.WriteLine($"[AUTH] UserID {UserID} not found in database. Initializing new account.");
+                    NewUser();
                     return;
                 }
-            } catch (Exception) { }
+            } 
+            catch (Exception ex) 
+            { 
+                Console.WriteLine($"[AUTH] CheckClient exception: {ex.Message}");
+            }
         }
 
         private void NewUser()
         {
             level = ObjectManager.CreateAvatar(0, null);
-            if (string.IsNullOrEmpty(UserToken))
+            if (string.IsNullOrEmpty(this.level.Avatar.UserToken))
             {
+                this.level.Avatar.UserToken = "";
                 for (int i = 0; i < 20; i++)
                 {
                     char letter = (char)Resources.Random.Next('A', 'Z');
-                    this.level.Avatar.UserToken +=  letter;
+                    this.level.Avatar.UserToken += letter;
                 }
             }
             

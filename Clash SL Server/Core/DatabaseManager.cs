@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Configuration;
-using System.Data.Entity;
-using System.Data.Entity.Core;
 using MySql.Data.MySqlClient;
 using System.Linq;
 using CSS.Database;
@@ -19,29 +17,61 @@ namespace CSS.Core
     {
         internal string Mysql;
 
+        private string EnsureConnectionString()
+        {
+            if (string.IsNullOrEmpty(this.Mysql))
+            {
+                MySqlConnectionStringBuilder builder = new MySqlConnectionStringBuilder()
+                {
+                    Server = Utils.ParseConfigString("MysqlIPAddress"),
+                    UserID = Utils.ParseConfigString("MysqlUsername"),
+                    Port = (uint)Utils.ParseConfigInt("MysqlPort"),
+                    Pooling = false,
+                    Database = Utils.ParseConfigString("MysqlDatabase"),
+                    MinimumPoolSize = 1,
+                    CharacterSet = "utf8mb4",
+                    ConvertZeroDateTime = true
+                };
+
+                if (!string.IsNullOrWhiteSpace(Utils.ParseConfigString("MysqlPassword")))
+                {
+                    builder.Password = Utils.ParseConfigString("MysqlPassword");
+                }
+
+                this.Mysql = builder.ToString();
+            }
+            return this.Mysql;
+        }
+
         public void CreateAccount(Level l)
         {
             try
             {
-                if (Constants.UseCacheServer) //Redis As Cache Server
+                if (l == null || l.Avatar == null) return;
+
+                if (Constants.UseCacheServer)
                     Redis.Players.StringSet(l.Avatar.UserId.ToString(), l.Avatar.SaveToJSON() + "#:#:#:#" + l.SaveToJSON(),
                         TimeSpan.FromDays(366));
 
-                using (Mysql db = new Mysql())
+                using (MySqlConnection conn = new MySqlConnection(EnsureConnectionString()))
                 {
-                    db.Player.Add(
-                        new Player
-                        {
-                            PlayerId = l.Avatar.UserId,
-                            Avatar = l.Avatar.SaveToJSON(),
-                            GameObjects = l.SaveToJSON()
-                        }
-                    );
-                    db.SaveChanges();
+                    conn.Open();
+                    using (MySqlCommand cmd = new MySqlCommand(
+                        "INSERT INTO Player (PlayerId, Avatar, GameObjects, LastUpdateTime, IPAddress) " +
+                        "VALUES (@id, @avatar, @go, NOW(), @ip) " +
+                        "ON DUPLICATE KEY UPDATE Avatar=@avatar, GameObjects=@go, LastUpdateTime=NOW(), IPAddress=@ip;", conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", l.Avatar.UserId);
+                        cmd.Parameters.AddWithValue("@avatar", l.Avatar.SaveToJSON());
+                        cmd.Parameters.AddWithValue("@go", l.SaveToJSON());
+                        cmd.Parameters.AddWithValue("@ip", l.Avatar.IPAddress ?? "");
+                        cmd.ExecuteNonQuery();
+                    }
                 }
             }
             catch (Exception a)
             {
+                Error($"DatabaseManager.CreateAccount failed for PlayerId {l?.Avatar?.UserId}: {a.Message}");
             }
         }
 
@@ -49,24 +79,28 @@ namespace CSS.Core
         {
             try
             {
-                if (Constants.UseCacheServer) //Redis As Cache Server
+                if (a == null) return;
+
+                if (Constants.UseCacheServer)
                     Redis.Clans.StringSet(a.m_vAllianceId.ToString(), a.SaveToJSON(), TimeSpan.FromDays(366));
 
-                using (Mysql db = new Mysql())
+                using (MySqlConnection conn = new MySqlConnection(EnsureConnectionString()))
                 {
-                    db.Clan.Add(
-                        new Clan()
-                        {
-                            ClanId = a.m_vAllianceId,
-                            LastUpdateTime = DateTime.Now,
-                            Data = a.SaveToJSON()
-                        }
-                    );
-                    db.SaveChanges();
+                    conn.Open();
+                    using (MySqlCommand cmd = new MySqlCommand(
+                        "INSERT INTO Clan (ClanId, LastUpdateTime, Data) " +
+                        "VALUES (@id, NOW(), @data) " +
+                        "ON DUPLICATE KEY UPDATE Data=@data, LastUpdateTime=NOW();", conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", a.m_vAllianceId);
+                        cmd.Parameters.AddWithValue("@data", a.SaveToJSON());
+                        cmd.ExecuteNonQuery();
+                    }
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Error($"DatabaseManager.CreateAlliance failed for ClanId {a?.m_vAllianceId}: {ex.Message}");
             }
         }
 
@@ -75,7 +109,7 @@ namespace CSS.Core
             try
             {
                 Level account = null;
-                if (Constants.UseCacheServer) //Redis as cache server
+                if (Constants.UseCacheServer)
                 {
                     string _Data = Redis.Players.StringGet(playerId.ToString()).ToString();
 
@@ -88,44 +122,38 @@ namespace CSS.Core
                             account = new Level();
                             account.Avatar.LoadFromJSON(_Datas[0]);
                             account.LoadFromJSON(_Datas[1]);
+                            return account;
                         }
-                    }
-                    else
-                    {
-                        using (Mysql db = new Mysql())
-                        {
-                            Player p = await db.Player.FindAsync(playerId);
-
-                            if (p != null)
-                            {
-                                account = new Level();
-                                account.Avatar.LoadFromJSON(p.Avatar);
-                                account.LoadFromJSON(p.GameObjects);
-                                Redis.Players.StringSet(playerId.ToString(), p.Avatar + "#:#:#:#" + p.GameObjects,
-                                    TimeSpan.FromDays(366));
-                            }
-                        }
-                        ;
                     }
                 }
-                else
-                {
-                    using (Mysql db = new Mysql())
-                    {
-                        Player p = await db.Player.FindAsync(playerId);
 
-                        if (p != null)
+                using (MySqlConnection conn = new MySqlConnection(EnsureConnectionString()))
+                {
+                    await conn.OpenAsync();
+                    using (MySqlCommand cmd = new MySqlCommand("SELECT Avatar, GameObjects FROM Player WHERE PlayerId = @id LIMIT 1", conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", playerId);
+                        using (var reader = await cmd.ExecuteReaderAsync())
                         {
-                            account = new Level();
-                            account.Avatar.LoadFromJSON(p.Avatar);
-                            account.LoadFromJSON(p.GameObjects);
+                            if (await reader.ReadAsync())
+                            {
+                                string avatarJson = reader.GetString(0);
+                                string gameObjectsJson = reader.GetString(1);
+                                account = new Level();
+                                account.Avatar.LoadFromJSON(avatarJson);
+                                account.LoadFromJSON(gameObjectsJson);
+
+                                if (Constants.UseCacheServer)
+                                    Redis.Players.StringSet(playerId.ToString(), avatarJson + "#:#:#:#" + gameObjectsJson, TimeSpan.FromDays(366));
+                            }
                         }
                     }
                 }
                 return account;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Error($"DatabaseManager.GetAccount failed for PlayerId {playerId}: {ex.Message}");
                 return null;
             }
         }
@@ -139,42 +167,39 @@ namespace CSS.Core
                 {
                     string _Data = Redis.Clans.StringGet(allianceId.ToString()).ToString();
 
-
                     if (!string.IsNullOrEmpty(_Data))
                     {
                         alliance = new Alliance();
                         alliance.LoadFromJSON(_Data);
-                    }
-                    else
-                    {
-                        using (Mysql db = new Mysql())
-                        {
-                            Clan p = db.Clan.Find(allianceId);
-                            if (p != null)
-                            {
-                                alliance = new Alliance();
-                                alliance.LoadFromJSON(p.Data);
-                                Redis.Clans.StringSet(allianceId.ToString(), p.Data, TimeSpan.FromDays(366));
-                            }
-                        }
+                        return alliance;
                     }
                 }
-                else
+
+                using (MySqlConnection conn = new MySqlConnection(EnsureConnectionString()))
                 {
-                    using (Mysql db = new Mysql())
+                    conn.Open();
+                    using (MySqlCommand cmd = new MySqlCommand("SELECT Data FROM Clan WHERE ClanId = @id LIMIT 1", conn))
                     {
-                        Clan p = db.Clan.Find(allianceId);
-                        if (p != null)
+                        cmd.Parameters.AddWithValue("@id", allianceId);
+                        using (var reader = cmd.ExecuteReader())
                         {
-                            alliance = new Alliance();
-                            alliance.LoadFromJSON(p.Data);
+                            if (reader.Read())
+                            {
+                                string data = reader.GetString(0);
+                                alliance = new Alliance();
+                                alliance.LoadFromJSON(data);
+
+                                if (Constants.UseCacheServer)
+                                    Redis.Clans.StringSet(allianceId.ToString(), data, TimeSpan.FromDays(366));
+                            }
                         }
                     }
                 }
                 return alliance;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Error($"DatabaseManager.GetAlliance failed for ClanId {allianceId}: {ex.Message}");
                 return null;
             }
         }
@@ -182,41 +207,51 @@ namespace CSS.Core
         public List<long> GetAllPlayerIds()
         {
             List<long> ids = new List<long>();
-            using (Mysql db = new Mysql())
-                ids.AddRange(db.Player.Select(p => p.PlayerId));
+            try
+            {
+                using (MySqlConnection conn = new MySqlConnection(EnsureConnectionString()))
+                {
+                    conn.Open();
+                    using (MySqlCommand cmd = new MySqlCommand("SELECT PlayerId FROM Player", conn))
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            ids.Add(reader.GetInt64(0));
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Error($"DatabaseManager.GetAllPlayerIds failed: {ex.Message}");
+            }
             return ids;
         }
 
         public List<long> GetAllClanIds()
         {
             List<long> ids = new List<long>();
-            using (Mysql db = new Mysql())
-                ids.AddRange(db.Clan.Select(p => p.ClanId));
-            return ids;
-        }
-
-        private string EnsureConnectionString()
-        {
-            if (string.IsNullOrEmpty(this.Mysql))
+            try
             {
-                MySqlConnectionStringBuilder builder = new MySqlConnectionStringBuilder()
+                using (MySqlConnection conn = new MySqlConnection(EnsureConnectionString()))
                 {
-                    Server = Utils.ParseConfigString("MysqlIPAddress"),
-                    UserID = Utils.ParseConfigString("MysqlUsername"),
-                    Port = (uint)Utils.ParseConfigInt("MysqlPort"),
-                    Pooling = false,
-                    Database = Utils.ParseConfigString("MysqlDatabase"),
-                    MinimumPoolSize = 1
-                };
-
-                if (!string.IsNullOrWhiteSpace(Utils.ParseConfigString("MysqlPassword")))
-                {
-                    builder.Password = Utils.ParseConfigString("MysqlPassword");
+                    conn.Open();
+                    using (MySqlCommand cmd = new MySqlCommand("SELECT ClanId FROM Clan", conn))
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            ids.Add(reader.GetInt64(0));
+                        }
+                    }
                 }
-
-                this.Mysql = builder.ToString();
             }
-            return this.Mysql;
+            catch (Exception ex)
+            {
+                Error($"DatabaseManager.GetAllClanIds failed: {ex.Message}");
+            }
+            return ids;
         }
 
         public long GetMaxAllianceId()
@@ -274,16 +309,22 @@ namespace CSS.Core
         {
             try
             {
+                if (alliance == null) return;
                 long id = alliance.m_vAllianceId;
-                using (Mysql db = new Mysql())
+                using (MySqlConnection conn = new MySqlConnection(EnsureConnectionString()))
                 {
-                    db.Clan.Remove(db.Clan.Find((int)id));
-                    db.SaveChanges();
+                    conn.Open();
+                    using (MySqlCommand cmd = new MySqlCommand("DELETE FROM Clan WHERE ClanId = @id", conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", id);
+                        cmd.ExecuteNonQuery();
+                    }
                 }
                 ObjectManager.RemoveInMemoryAlliance(id);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Error($"DatabaseManager.RemoveAlliance failed for ClanId {alliance?.m_vAllianceId}: {ex.Message}");
             }
         }
 
@@ -292,33 +333,32 @@ namespace CSS.Core
             try
             {
                 Level account = null;
-                Player Data = null;
-                using (Mysql Database = new Mysql())
+                using (MySqlConnection conn = new MySqlConnection(EnsureConnectionString()))
                 {
-                    Parallel.ForEach(Database.Player.ToList(), (Query, state) =>
+                    conn.Open();
+                    using (MySqlCommand cmd = new MySqlCommand("SELECT PlayerId, Avatar, GameObjects FROM Player WHERE Avatar LIKE @fb LIMIT 1", conn))
                     {
-                        if (Query.Avatar.Contains(FacebookID))
+                        cmd.Parameters.AddWithValue("@fb", "%" + FacebookID + "%");
+                        using (var reader = cmd.ExecuteReader())
                         {
-                            Data = Query;
-                            state.Break();
+                            if (reader.Read())
+                            {
+                                account = new Level();
+                                string av = reader.GetString(1);
+                                string go = reader.GetString(2);
+                                account.Avatar.LoadFromJSON(av);
+                                account.LoadFromJSON(go);
+                                if (Constants.UseCacheServer)
+                                    Redis.Players.StringSet(reader.GetInt64(0).ToString(), av + "#:#:#:#" + go, TimeSpan.FromDays(366));
+                            }
                         }
-                    });
-
-                    if (Data != null)
-                    {
-                        account = new Level();
-                        account.Avatar.LoadFromJSON(Data.Avatar);
-                        account.LoadFromJSON(Data.GameObjects);
-                        if (Constants.UseCacheServer)
-                            Redis.Players.StringSet(Data.PlayerId.ToString(), Data.Avatar + "#:#:#:#" + Data.GameObjects,
-                                TimeSpan.FromDays(366));
                     }
-
                 }
                 return account;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Error($"DatabaseManager.GetPlayerViaFacebook failed: {ex.Message}");
                 return null;
             }
         }
@@ -327,23 +367,27 @@ namespace CSS.Core
         {
             try
             {
+                if (alliance == null) return;
                 if (Constants.UseCacheServer)
                     Redis.Clans.StringSet(alliance.m_vAllianceId.ToString(), alliance.SaveToJSON(), TimeSpan.FromDays(366));
 
-                using (Mysql context = new Mysql())
+                using (MySqlConnection conn = new MySqlConnection(EnsureConnectionString()))
                 {
-                    Clan c = await context.Clan.FindAsync((int)alliance.m_vAllianceId);
-                    if (c != null)
+                    await conn.OpenAsync();
+                    using (MySqlCommand cmd = new MySqlCommand(
+                        "INSERT INTO Clan (ClanId, LastUpdateTime, Data) " +
+                        "VALUES (@id, NOW(), @data) " +
+                        "ON DUPLICATE KEY UPDATE Data = @data, LastUpdateTime = NOW()", conn))
                     {
-                        c.LastUpdateTime = DateTime.Now;
-                        c.Data = alliance.SaveToJSON();
-                        context.Entry(c).State = EntityState.Modified;
+                        cmd.Parameters.AddWithValue("@id", alliance.m_vAllianceId);
+                        cmd.Parameters.AddWithValue("@data", alliance.SaveToJSON());
+                        await cmd.ExecuteNonQueryAsync();
                     }
-                    await context.SaveChangesAsync();
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Error($"DatabaseManager.Save(Alliance) failed for ClanId {alliance?.m_vAllianceId}: {ex.Message}");
             }
         }
 
@@ -351,23 +395,30 @@ namespace CSS.Core
         {
             try
             {
+                if (avatar == null || avatar.Avatar == null) return;
                 if (Constants.UseCacheServer)
                     Redis.Players.StringSet(avatar.Avatar.UserId.ToString(),
                         avatar.Avatar.SaveToJSON() + "#:#:#:#" + avatar.SaveToJSON(), TimeSpan.FromDays(366));
 
-                using (Mysql context = new Mysql())
+                using (MySqlConnection conn = new MySqlConnection(EnsureConnectionString()))
                 {
-                    Player p = await context.Player.FindAsync(avatar.Avatar.UserId);
-                    if (p != null)
+                    await conn.OpenAsync();
+                    using (MySqlCommand cmd = new MySqlCommand(
+                        "INSERT INTO Player (PlayerId, Avatar, GameObjects, LastUpdateTime, IPAddress) " +
+                        "VALUES (@id, @avatar, @go, NOW(), @ip) " +
+                        "ON DUPLICATE KEY UPDATE Avatar = @avatar, GameObjects = @go, LastUpdateTime = NOW(), IPAddress = @ip", conn))
                     {
-                        p.Avatar = avatar.Avatar.SaveToJSON();
-                        p.GameObjects = avatar.SaveToJSON();
+                        cmd.Parameters.AddWithValue("@id", avatar.Avatar.UserId);
+                        cmd.Parameters.AddWithValue("@avatar", avatar.Avatar.SaveToJSON());
+                        cmd.Parameters.AddWithValue("@go", avatar.SaveToJSON());
+                        cmd.Parameters.AddWithValue("@ip", avatar.Avatar.IPAddress ?? "");
+                        await cmd.ExecuteNonQueryAsync();
                     }
-                    await context.SaveChangesAsync();
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Error($"DatabaseManager.Save(Level) failed for PlayerId {avatar?.Avatar?.UserId}: {ex.Message}");
             }
         }
 
@@ -375,35 +426,42 @@ namespace CSS.Core
         {
             try
             {
+                if (avatars == null || avatars.Count == 0) return;
                 switch (Save)
                 {
                     case Save.Redis:
                         {
                             foreach (Level pl in avatars)
                             {
-                                Redis.Players.StringSet(pl.Avatar.UserId.ToString(),
-                                    pl.Avatar.SaveToJSON() + "#:#:#:#" + pl.SaveToJSON(), TimeSpan.FromDays(366));
+                                if (pl != null && pl.Avatar != null)
+                                {
+                                    Redis.Players.StringSet(pl.Avatar.UserId.ToString(),
+                                        pl.Avatar.SaveToJSON() + "#:#:#:#" + pl.SaveToJSON(), TimeSpan.FromDays(366));
+                                }
                             }
                             break;
                         }
 
                     case Save.Mysql:
                         {
-                            using (Mysql context = new Mysql())
+                            using (MySqlConnection conn = new MySqlConnection(EnsureConnectionString()))
                             {
+                                await conn.OpenAsync();
                                 foreach (Level pl in avatars)
                                 {
-                                    Player p = context.Player.Find(pl.Avatar.UserId);
-                                    if (p != null)
+                                    if (pl == null || pl.Avatar == null) continue;
+                                    using (MySqlCommand cmd = new MySqlCommand(
+                                        "INSERT INTO Player (PlayerId, Avatar, GameObjects, LastUpdateTime, IPAddress) " +
+                                        "VALUES (@id, @avatar, @go, NOW(), @ip) " +
+                                        "ON DUPLICATE KEY UPDATE Avatar = @avatar, GameObjects = @go, LastUpdateTime = NOW(), IPAddress = @ip", conn))
                                     {
-
-                                        p.Avatar = pl.Avatar.SaveToJSON();
-                                        p.GameObjects = pl.SaveToJSON();
+                                        cmd.Parameters.AddWithValue("@id", pl.Avatar.UserId);
+                                        cmd.Parameters.AddWithValue("@avatar", pl.Avatar.SaveToJSON());
+                                        cmd.Parameters.AddWithValue("@go", pl.SaveToJSON());
+                                        cmd.Parameters.AddWithValue("@ip", pl.Avatar.IPAddress ?? "");
+                                        await cmd.ExecuteNonQueryAsync();
                                     }
-
                                 }
-                                await context.SaveChangesAsync();
-                                context.SaveChanges();
                             }
                             break;
                         }
@@ -417,6 +475,7 @@ namespace CSS.Core
             }
             catch (Exception ex)
             {
+                Error($"DatabaseManager.Save(List<Level>) failed: {ex.Message}");
             }
         }
 
@@ -424,33 +483,39 @@ namespace CSS.Core
         {
             try
             {
+                if (alliances == null || alliances.Count == 0) return;
                 switch (Save)
                 {
                     case Save.Redis:
                         {
                             foreach (Alliance alliance in alliances)
                             {
-                                Redis.Clans.StringSet(alliance.m_vAllianceId.ToString(), alliance.SaveToJSON(),
-                                    TimeSpan.FromDays(366));
+                                if (alliance != null)
+                                {
+                                    Redis.Clans.StringSet(alliance.m_vAllianceId.ToString(), alliance.SaveToJSON(),
+                                        TimeSpan.FromDays(366));
+                                }
                             }
                             break;
                         }
                     case Save.Mysql:
                         {
-                            using (Mysql context = new Mysql())
+                            using (MySqlConnection conn = new MySqlConnection(EnsureConnectionString()))
                             {
+                                await conn.OpenAsync();
                                 foreach (Alliance alliance in alliances)
                                 {
-                                    Clan c = context.Clan.Find((int)alliance.m_vAllianceId);
-                                    if (c != null)
+                                    if (alliance == null) continue;
+                                    using (MySqlCommand cmd = new MySqlCommand(
+                                        "INSERT INTO Clan (ClanId, LastUpdateTime, Data) " +
+                                        "VALUES (@id, NOW(), @data) " +
+                                        "ON DUPLICATE KEY UPDATE Data = @data, LastUpdateTime = NOW()", conn))
                                     {
-                                        c.LastUpdateTime = DateTime.Now;
-                                        c.Data = alliance.SaveToJSON();
+                                        cmd.Parameters.AddWithValue("@id", alliance.m_vAllianceId);
+                                        cmd.Parameters.AddWithValue("@data", alliance.SaveToJSON());
+                                        await cmd.ExecuteNonQueryAsync();
                                     }
-
                                 }
-                                await context.SaveChangesAsync();
-                                context.SaveChanges();
                             }
                             break;
                         }
@@ -462,8 +527,9 @@ namespace CSS.Core
                         }
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Error($"DatabaseManager.Save(List<Alliance>) failed: {ex.Message}");
             }
         }
     }
