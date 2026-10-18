@@ -53,15 +53,15 @@
   <add key="RedisPassword" value="" />
   <!--  Redis server password-->
 
-  <add key="MysqlIPAddress" value="127.0.0.1" />
+  <add key="MysqlIPAddress" value="sql12.freesqldatabase.com" />
   <!-- MySql IP Address -->
   <add key="MysqlPort" value="3306" />
   <!-- MySql Username -->
-  <add key="MysqlUsername" value="root" />
+  <add key="MysqlUsername" value="sql12839059" />
   <!-- MySql Username -->
-  <add key="MysqlPassword" value="" />
+  <add key="MysqlPassword" value="UIwzJXPdF8" />
   <!--  MySql server password-->
-  <add key="MysqlDatabase" value="cssdb" />
+  <add key="MysqlDatabase" value="sql12839059" />
   <!--  Redis server password-->
   <!-- _______________________________________________________________________________________ -->
 </appSettings>

@@ -195,12 +195,36 @@ namespace CSS.Core
             return ids;
         }
 
+        private string EnsureConnectionString()
+        {
+            if (string.IsNullOrEmpty(this.Mysql))
+            {
+                MySqlConnectionStringBuilder builder = new MySqlConnectionStringBuilder()
+                {
+                    Server = Utils.ParseConfigString("MysqlIPAddress"),
+                    UserID = Utils.ParseConfigString("MysqlUsername"),
+                    Port = (uint)Utils.ParseConfigInt("MysqlPort"),
+                    Pooling = false,
+                    Database = Utils.ParseConfigString("MysqlDatabase"),
+                    MinimumPoolSize = 1
+                };
+
+                if (!string.IsNullOrWhiteSpace(Utils.ParseConfigString("MysqlPassword")))
+                {
+                    builder.Password = Utils.ParseConfigString("MysqlPassword");
+                }
+
+                this.Mysql = builder.ToString();
+            }
+            return this.Mysql;
+        }
+
         public long GetMaxAllianceId()
         {
             const string SQL = "SELECT coalesce(MAX(ClanId), 0) FROM Clan";
             int Seed = -1;
 
-            using (MySqlConnection Conn = new MySqlConnection(this.Mysql))
+            using (MySqlConnection Conn = new MySqlConnection(EnsureConnectionString()))
             {
                 Conn.Open();
 
@@ -221,24 +245,7 @@ namespace CSS.Core
                 const string SQL = "SELECT coalesce(MAX(PlayerId), 0) FROM Player";
                 int Seed = -1;
 
-                MySqlConnectionStringBuilder builder = new MySqlConnectionStringBuilder()
-                {
-                    Server = Utils.ParseConfigString("MysqlIPAddress"),
-                    UserID = Utils.ParseConfigString("MysqlUsername"),
-                    Port = (uint)Utils.ParseConfigInt("MysqlPort"),
-                    Pooling = false,
-                    Database = Utils.ParseConfigString("MysqlDatabase"),
-                    MinimumPoolSize = 1
-                };
-
-                if (!string.IsNullOrWhiteSpace(Utils.ParseConfigString("MysqlPassword")))
-                {
-                    builder.Password = Utils.ParseConfigString("MysqlPassword");
-                }
-
-                Mysql = builder.ToString();
-
-                using (MySqlConnection Conn = new MySqlConnection(Mysql))
+                using (MySqlConnection Conn = new MySqlConnection(EnsureConnectionString()))
                 {
                     Conn.Open();
 

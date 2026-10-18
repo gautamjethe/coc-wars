@@ -1,12 +1,34 @@
-﻿namespace CSS.Database
+namespace CSS.Database
 {
+    using System;
     using System.Data.Entity;
     using System.Data.Entity.Infrastructure;
+    using CSS.Helpers;
 
     public class Mysql : DbContext
     {
-        public Mysql() : base("name=mysql")
+        public Mysql() : base(GetConnectionString())
         {
+        }
+
+        public static string GetConnectionString()
+        {
+            try
+            {
+                var host = Utils.ParseConfigString("MysqlIPAddress");
+                var user = Utils.ParseConfigString("MysqlUsername");
+                var port = Utils.ParseConfigInt("MysqlPort");
+                var db = Utils.ParseConfigString("MysqlDatabase");
+                var pwd = Utils.ParseConfigString("MysqlPassword");
+
+                if (!string.IsNullOrEmpty(host))
+                {
+                    string providerConn = $"server={host};port={port};user id={user};password={pwd};persistsecurityinfo=True;database={db};CharSet=utf8mb4;";
+                    return $"metadata=res://*/Database.CSSdb.csdl|res://*/Database.CSSdb.ssdl|res://*/Database.CSSdb.msl;provider=MySql.Data.MySqlClient;provider connection string=\"{providerConn}\"";
+                }
+            }
+            catch (Exception) { }
+            return "name=mysql";
         }
 
         protected override void OnModelCreating(DbModelBuilder modelBuilder)

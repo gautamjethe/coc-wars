@@ -1,5 +1,4 @@
-CREATE DATABASE  IF NOT EXISTS `cssdb` /*!40100 DEFAULT CHARACTER SET latin1 */ /*!80016 DEFAULT ENCRYPTION='N' */;
-USE `cssdb`;
+
 -- MySQL dump 10.13  Distrib 8.0.16, for Win64 (x86_64)
 --
 -- Host: 192.168.1.7    Database: cssdb
@@ -18,37 +17,31 @@ USE `cssdb`;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Table structure for table `clan`
+-- Table structure for table `Clan`
 --
 
-DROP TABLE IF EXISTS `clan`;
+DROP VIEW IF EXISTS `clan`;
+DROP TABLE IF EXISTS `Clan`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
  SET character_set_client = utf8mb4 ;
-CREATE TABLE `clan` (
+CREATE TABLE `Clan` (
   `ClanId` bigint(20) NOT NULL COMMENT 'The ID of the Clan',
   `LastUpdateTime` datetime NOT NULL COMMENT 'The last time when this clan has been loaded',
   `Data` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT 'The infos and members data of the clan',
   PRIMARY KEY (`ClanId`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
+CREATE OR REPLACE VIEW `clan` AS SELECT * FROM `Clan`;
 
 --
--- Dumping data for table `clan`
+-- Table structure for table `Player`
 --
 
-LOCK TABLES `clan` WRITE;
-/*!40000 ALTER TABLE `clan` DISABLE KEYS */;
-/*!40000 ALTER TABLE `clan` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `player`
---
-
-DROP TABLE IF EXISTS `player`;
+DROP VIEW IF EXISTS `player`;
+DROP TABLE IF EXISTS `Player`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
  SET character_set_client = utf8mb4 ;
-CREATE TABLE `player` (
+CREATE TABLE `Player` (
   `PlayerId` bigint(20) NOT NULL,
   `AccountStatus` tinyint(4) NOT NULL DEFAULT '0',
   `AccountPrivileges` tinyint(4) NOT NULL DEFAULT '0',
@@ -59,6 +52,7 @@ CREATE TABLE `player` (
   PRIMARY KEY (`PlayerId`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
+CREATE OR REPLACE VIEW `player` AS SELECT * FROM `Player`;
 
 --
 -- Dumping data for table `player`
