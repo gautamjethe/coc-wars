@@ -19,8 +19,8 @@
     {
       "id": 1,
       "name": "Army & Spell Boost",
-      "boomboxEntry": "ArmySpellBoost",
-      "eventEntryName": "ArmySpellBoost",
+      "boomboxEntry": "ValentinesHeroBoost",
+      "eventEntryName": "ValentinesHeroBoost",
       "inboxEntryId": 1,
       "visibleTime": "20240101T000000.000Z",
       "startTime": "20240101T000000.000Z",
@@ -61,16 +61,16 @@
     },
     {
       "id": 4,
-      "name": "Golem Event",
-      "boomboxEntry": "TroopDiscountGolem",
-      "eventEntryName": "TroopDiscountGolem",
+      "name": "Wizard Event",
+      "boomboxEntry": "TroopDiscountWizard",
+      "eventEntryName": "TroopDiscountWizard",
       "inboxEntryId": 1,
       "visibleTime": "20240101T000000.000Z",
       "startTime": "20240101T000000.000Z",
       "endTime": "20350101T000000.000Z",
       "showUpcoming": 0,
       "functions": [
-        { "name": "TroopDiscount", "parameters": [ "4000013", "50" ] }
+        { "name": "TroopDiscount", "parameters": [ "4000006", "50" ] }
       ]
     },
     {
