@@ -939,6 +939,50 @@ namespace CSS.Logic
                             if (war.Clan1 != null) ClanToWarMap[war.Clan1.ClanId] = war.WarId;
                             if (war.Clan2 != null) ClanToWarMap[war.Clan2.ClanId] = war.WarId;
                             if (war.WarId >= m_vWarSeed) m_vWarSeed = war.WarId + 1;
+
+                            // Re-register dummy members in memory so they are always resolvable
+                            if (war.Clan1?.Members != null)
+                            {
+                                foreach (var m in war.Clan1.Members)
+                                {
+                                    if (m.UserId > 10000000 && !ResourcesManager.m_vInMemoryLevels.ContainsKey(m.UserId))
+                                    {
+                                        CreateDummyLevel(m.UserId, m.ClanId, m.Name, m.TownHallLevel);
+                                    }
+                                }
+                            }
+                            if (war.Clan2?.Members != null)
+                            {
+                                foreach (var m in war.Clan2.Members)
+                                {
+                                    if (m.UserId > 10000000 && !ResourcesManager.m_vInMemoryLevels.ContainsKey(m.UserId))
+                                    {
+                                        CreateDummyLevel(m.UserId, m.ClanId, m.Name, m.TownHallLevel);
+                                    }
+                                }
+
+                                if (!ResourcesManager.InMemoryAlliancesContain(war.Clan2.ClanId))
+                                {
+                                    var aiAlliance = new Alliance(war.Clan2.ClanId)
+                                    {
+                                        m_vAllianceName = war.Clan2.ClanName,
+                                        m_vAllianceBadgeData = war.Clan2.ClanBadge,
+                                        m_vAllianceLevel = war.Clan2.ClanLevel,
+                                        m_vAllianceType = 0,
+                                        m_vWarLogPublic = 1
+                                    };
+                                    foreach (var m in war.Clan2.Members)
+                                    {
+                                        aiAlliance.AddAllianceMember(new AllianceMemberEntry(m.UserId)
+                                        {
+                                            Role = (m.MapPosition == 0 ? 2 : 1),
+                                            WarOptInStatus = 1,
+                                            Order = m.MapPosition + 1
+                                        });
+                                    }
+                                    ResourcesManager.AddAllianceInMemory(aiAlliance);
+                                }
+                            }
                         }
                     }
                 }
@@ -1220,12 +1264,34 @@ namespace CSS.Logic
                 }
             }
 
+            string[] friendlyNames = { "Ironclad", "ShadowBlade", "Valkyrie", "DragonHeart", "ThunderStrike", "Phoenix", "Titan", "Berserker", "Warlock", "Paladin", "Gladiator", "Apex", "Centurion", "Overlord", "Crusader" };
+
             // Fill remaining slots if clan has fewer than teamSize members
+            int clan1BaseTh = war.Clan1.Members.Count > 0 ? war.Clan1.Members[0].TownHallLevel : 9;
             while (war.Clan1.Members.Count < teamSize)
             {
                 int dummyPos = war.Clan1.Members.Count;
-                var dummy = CreatePresetWarMember(clan1.m_vAllianceId, dummyPos, 8, $"Warrior {dummyPos + 1}");
-                war.Clan1.Members.Add(dummy);
+                long dummyId = clan1.m_vAllianceId * 1000 + dummyPos + 1;
+                string dummyName = friendlyNames[dummyPos % friendlyNames.Length];
+                int th = Math.Max(5, Math.Min(11, clan1BaseTh - (dummyPos * 3 / teamSize)));
+
+                Level dummyLevel = CreateDummyLevel(dummyId, clan1.m_vAllianceId, dummyName, th, 1);
+                if (!clan1.m_vAllianceMembers.ContainsKey(dummyId))
+                {
+                    clan1.AddAllianceMember(new AllianceMemberEntry(dummyId)
+                    {
+                        Role = 1,
+                        WarOptInStatus = 1,
+                        Order = dummyPos + 1,
+                        PreviousOrder = dummyPos + 1
+                    });
+                }
+
+                var dummyWarMember = new ClanWarMember(dummyLevel.Avatar, dummyPos, clan1.m_vAllianceId)
+                {
+                    VillageJson = dummyLevel.SaveToJSON()
+                };
+                war.Clan1.Members.Add(dummyWarMember);
             }
 
             // Sort members by TownHall level / defense weight descending, so map positions 0..teamSize-1 match strength!
@@ -1234,6 +1300,12 @@ namespace CSS.Logic
             {
                 war.Clan1.Members[i].MapPosition = i;
             }
+
+            try
+            {
+                Resources.DatabaseManager.Save(clan1);
+            }
+            catch (Exception) { }
 
             // Populate Clan 2
             if (clan2 != null)
@@ -1256,29 +1328,54 @@ namespace CSS.Logic
                         pos++;
                     }
                 }
+                int clan2BaseTh = war.Clan2.Members.Count > 0 ? war.Clan2.Members[0].TownHallLevel : 9;
                 while (war.Clan2.Members.Count < teamSize)
                 {
                     int dummyPos = war.Clan2.Members.Count;
-                    var dummy = CreatePresetWarMember(clan2.m_vAllianceId, dummyPos, 8, $"Defender {dummyPos + 1}");
-                    war.Clan2.Members.Add(dummy);
+                    long dummyId = clan2.m_vAllianceId * 1000 + dummyPos + 1;
+                    string dummyName = friendlyNames[dummyPos % friendlyNames.Length];
+                    int th = Math.Max(5, Math.Min(11, clan2BaseTh - (dummyPos * 3 / teamSize)));
+
+                    Level dummyLevel = CreateDummyLevel(dummyId, clan2.m_vAllianceId, dummyName, th, 1);
+                    if (!clan2.m_vAllianceMembers.ContainsKey(dummyId))
+                    {
+                        clan2.AddAllianceMember(new AllianceMemberEntry(dummyId)
+                        {
+                            Role = 1,
+                            WarOptInStatus = 1,
+                            Order = dummyPos + 1,
+                            PreviousOrder = dummyPos + 1
+                        });
+                    }
+                    var dummyWarMember = new ClanWarMember(dummyLevel.Avatar, dummyPos, clan2.m_vAllianceId)
+                    {
+                        VillageJson = dummyLevel.SaveToJSON()
+                    };
+                    war.Clan2.Members.Add(dummyWarMember);
                 }
                 war.Clan2.Members = war.Clan2.Members.OrderByDescending(m => m.TownHallLevel).ThenByDescending(m => m.DefenceWeight).ToList();
                 for (int i = 0; i < war.Clan2.Members.Count; i++)
                 {
                     war.Clan2.Members[i].MapPosition = i;
                 }
+                try
+                {
+                    Resources.DatabaseManager.Save(clan2);
+                }
+                catch (Exception) { }
             }
             else
             {
-                // Generate AI Opponent Clan using PVP Base Presets
-                war.Clan2 = GenerateAIOpponentClan(teamSize);
+                // Generate AI Opponent Clan using PVP Base Presets matching Clan 1 strength
+                int avgTh = war.Clan1.Members.Count > 0 ? war.Clan1.Members[0].TownHallLevel : 9;
+                war.Clan2 = GenerateAIOpponentClan(teamSize, avgTh);
             }
 
             Wars[warId] = war;
             ClanToWarMap[clan1.m_vAllianceId] = warId;
-            if (clan2 != null)
+            if (war.Clan2 != null)
             {
-                ClanToWarMap[clan2.m_vAllianceId] = warId;
+                ClanToWarMap[war.Clan2.ClanId] = warId;
             }
             SaveState();
 
@@ -1298,42 +1395,71 @@ namespace CSS.Logic
             return war;
         }
 
+        internal static Level CreateDummyLevel(long dummyId, long clanId, string name, int th, int role = 1)
+        {
+            string presetVillage = GetPresetBase(th);
+            Level dummyLevel = new Level(dummyId);
+            if (!string.IsNullOrEmpty(presetVillage))
+            {
+                dummyLevel.LoadFromJSON(presetVillage);
+            }
+            dummyLevel.Avatar.UserId = dummyId;
+            dummyLevel.Avatar.CurrentHomeId = dummyId;
+            dummyLevel.Avatar.AvatarName = name;
+            dummyLevel.Avatar.m_vTownHallLevel = th;
+            dummyLevel.Avatar.AllianceId = clanId;
+            dummyLevel.Avatar.SetScore(1200 + th * 150 + (int)(dummyId % 70));
+            dummyLevel.Avatar.m_vAvatarLevel = 30 + th * 8;
+            dummyLevel.Avatar.m_vLeagueId = (byte)(th >= 11 ? 16 : (th >= 9 ? 13 : (th >= 7 ? 10 : 7)));
+            dummyLevel.Avatar.m_vDonated = 150 + th * 20;
+            dummyLevel.Avatar.m_vReceived = 100 + th * 15;
+
+            ResourcesManager.LoadLevel(dummyLevel);
+            try
+            {
+                Resources.DatabaseManager.Save(dummyLevel);
+            }
+            catch (Exception) { }
+
+            return dummyLevel;
+        }
+
+        internal static Level GetWarMemberAsLevel(long userId)
+        {
+            foreach (var war in Wars.Values)
+            {
+                var member = war.GetMember(userId);
+                if (member != null)
+                {
+                    return CreateDummyLevel(member.UserId, member.ClanId, member.Name, member.TownHallLevel);
+                }
+            }
+            return null;
+        }
+
         public static ClanWarMember CreatePresetWarMember(long clanId, int pos, int th, string name)
         {
             long dummyId = clanId * 1000 + pos + 1;
-            string presetVillage = GetPresetBase(th);
-            return new ClanWarMember
+            Level dummyLevel = CreateDummyLevel(dummyId, clanId, name, th, 1);
+            return new ClanWarMember(dummyLevel.Avatar, pos, clanId)
             {
-                UserId = dummyId,
-                HomeId = dummyId,
-                ClanId = clanId,
-                Name = name,
-                MapPosition = pos,
-                TownHallLevel = th,
-                OffenceWeight = 500 + th * 30,
-                DefenceWeight = 500 + th * 25,
-                ClanCastleLevel = (byte)Math.Min(6, Math.Max(1, th / 2)),
-                ClanCastleMaxCapacity = 10 + Math.Min(6, Math.Max(1, th / 2)) * 5,
-                ClanCastleMessage = "",
-                GoldAvailable = 100000 + th * 15000,
-                ElixirAvailable = 100000 + th * 15000,
-                DarkElixirAvailable = th >= 7 ? 500 + th * 80 : 0,
-                VillageJson = presetVillage
+                VillageJson = dummyLevel.SaveToJSON()
             };
         }
 
-        private static WarClan GenerateAIOpponentClan(int teamSize)
+        private static WarClan GenerateAIOpponentClan(int teamSize, int avgTh = 9)
         {
             long aiClanId = 99990000 + new Random().Next(100, 999);
-            string[] names = { "Shadow Legion", "Goblin Horde", "Valkyrie Storm", "Dragon Slayers", "P.E.K.K.A Force", "Clash Kings" };
+            string[] names = { "Shadow Legion", "Goblin Horde", "Valkyrie Storm", "Dragon Slayers", "P.E.K.K.A Force", "Clash Kings", "Titan Empire", "Dark Knights" };
             string chosenName = names[new Random().Next(0, names.Length)];
+            string[] enemyNames = { "Warlord", "Vortex", "FrostBite", "Ghost", "Inferno", "NightCrawler", "Havoc", "Razor", "StormBringer", "DoomHammer", "Venom", "Reaper", "Oblivion", "Spectre", "Cobra" };
 
             var aiClan = new WarClan
             {
                 ClanId = aiClanId,
                 ClanName = chosenName,
                 ClanBadge = 0x5B002B54,
-                ClanLevel = 5,
+                ClanLevel = Math.Max(1, avgTh - 3),
                 Members = new List<ClanWarMember>()
             };
 
@@ -1341,17 +1467,49 @@ namespace CSS.Logic
             {
                 m_vAllianceName = chosenName,
                 m_vAllianceBadgeData = 0x5B002B54,
-                m_vAllianceLevel = 5,
-                m_vAllianceType = 0
+                m_vAllianceLevel = Math.Max(1, avgTh - 3),
+                m_vAllianceType = 0,
+                m_vAllianceDescription = $"Official {chosenName} Clan. Ready for war!",
+                m_vWarFrequency = 1,
+                m_vWonWars = new Random().Next(15, 60),
+                m_vLostWars = new Random().Next(5, 25),
+                m_vDrawWars = new Random().Next(0, 5),
+                m_vWarLogPublic = 1
             };
-            ResourcesManager.AddAllianceInMemory(aiAlliance);
 
+            int totalScore = 0;
             for (int i = 0; i < teamSize; i++)
             {
-                int th = Math.Max(6, 11 - (i * 5 / teamSize));
-                string name = $"Enemy #{i + 1}";
-                aiClan.Members.Add(CreatePresetWarMember(aiClanId, i, th, name));
+                int th = Math.Max(5, Math.Min(11, avgTh - (i * 3 / teamSize)));
+                string name = enemyNames[i % enemyNames.Length];
+                int role = (i == 0) ? 2 : (i == 1 ? 4 : (i < 3 ? 3 : 1));
+                long dummyId = aiClanId * 1000 + i + 1;
+
+                Level dummyLevel = CreateDummyLevel(dummyId, aiClanId, name, th, role);
+                totalScore += dummyLevel.Avatar.GetScore();
+
+                aiAlliance.AddAllianceMember(new AllianceMemberEntry(dummyId)
+                {
+                    Role = role,
+                    WarOptInStatus = 1,
+                    Order = i + 1,
+                    PreviousOrder = i + 1
+                });
+
+                var warMember = new ClanWarMember(dummyLevel.Avatar, i, aiClanId)
+                {
+                    VillageJson = dummyLevel.SaveToJSON()
+                };
+                aiClan.Members.Add(warMember);
             }
+
+            aiAlliance.m_vScore = totalScore / 2;
+            ResourcesManager.AddAllianceInMemory(aiAlliance);
+            try
+            {
+                Resources.DatabaseManager.Save(aiAlliance);
+            }
+            catch (Exception) { }
 
             aiClan.Members = aiClan.Members.OrderByDescending(m => m.TownHallLevel).ThenByDescending(m => m.DefenceWeight).ToList();
             for (int i = 0; i < aiClan.Members.Count; i++)

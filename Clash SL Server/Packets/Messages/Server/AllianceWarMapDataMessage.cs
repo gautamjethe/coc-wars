@@ -73,8 +73,9 @@ namespace CSS.Packets.Messages.Server
                 EncodeMember(war, m);
             }
 
-            // Separator between Clan 1 and Clan 2
-            this.Data.Add((byte)3);
+            // Clan 1 Tail
+            this.Data.Add((byte)1);
+            this.Data.Add((byte)1);
             this.Data.AddInt(-1);
             this.Data.AddInt(1);
             this.Data.AddInt(war.WarSize);
@@ -82,6 +83,8 @@ namespace CSS.Packets.Messages.Server
             this.Data.AddInt(50);
             this.Data.AddInt(40);
             this.Data.AddInt(60);
+
+            // Clan 2 Boolean
             this.Data.Add((byte)1);
 
             // Clan 2 Header
@@ -98,8 +101,9 @@ namespace CSS.Packets.Messages.Server
                 EncodeMember(war, m);
             }
 
-            // War Map Tail
-            this.Data.Add((byte)3);
+            // Clan 2 Tail
+            this.Data.Add((byte)1);
+            this.Data.Add((byte)1);
             this.Data.AddInt(-1);
             this.Data.AddInt(1);
             this.Data.AddInt(war.WarSize);
@@ -107,32 +111,14 @@ namespace CSS.Packets.Messages.Server
             this.Data.AddInt(50);
             this.Data.AddInt(40);
             this.Data.AddInt(60);
+
+            // War Map Tail
             this.Data.Add((byte)1);
             this.Data.AddLong(war.WarId);
             this.Data.AddInt(0);
             this.Data.Add((byte)1);
             this.Data.AddLong(c2.ClanId);
-
-            // Attack Logs
-            this.Data.AddInt(war.AttackLogs.Count);
-            foreach (var a in war.AttackLogs)
-            {
-                this.Data.AddLong(a.AttackerClanId);
-                this.Data.AddLong(a.AttackerUserId);
-                this.Data.AddLong(a.DefenderClanId);
-                this.Data.AddLong(a.DefenderUserId);
-                this.Data.AddString(a.AttackerName ?? "Attacker");
-                this.Data.AddString(a.DefenderName ?? "Defender");
-                this.Data.AddInt(a.Stars);
-                this.Data.AddInt(a.Order);
-                this.Data.AddInt(a.DestructionPercentage);
-                this.Data.AddInt(a.Stars);
-                this.Data.AddInt(8);
-                this.Data.AddInt(a.Duration > 0 ? a.Duration : 120);
-                this.Data.AddInt(6);
-                this.Data.Add((byte)1);
-                this.Data.AddLong(a.ReplayId);
-            }
+            this.Data.AddInt(0); // Attack logs count
         }
 
         private void EncodeMember(ClanWar war, ClanWarMember m)
@@ -144,7 +130,7 @@ namespace CSS.Packets.Messages.Server
 
             this.Data.AddInt(m.StarsConceded);
             this.Data.AddInt(m.DamageConceded);
-            this.Data.AddInt(0); // Unknown 1
+            this.Data.AddInt(0);
             this.Data.AddInt(m.AttacksUsed);
             this.Data.AddInt(m.GotAttackedCount);
             this.Data.AddInt(m.GoldGain);
@@ -153,47 +139,40 @@ namespace CSS.Packets.Messages.Server
             this.Data.AddInt(m.GoldAvailable);
             this.Data.AddInt(m.ElixirAvailable);
             this.Data.AddInt(m.DarkElixirAvailable);
-            this.Data.AddInt(0); // Unknown 2
+            this.Data.AddInt(0);
             this.Data.AddInt(m.OffenceWeight);
             this.Data.AddInt(m.DefenceWeight);
-            this.Data.AddInt(1); // Unknown 3
+            this.Data.AddInt(1);
             this.Data.AddInt(Math.Max(0, m.TownHallLevel - 1));
             this.Data.AddInt(m.MapPosition);
-            this.Data.Add((byte)Math.Max(0, 2 - m.AttacksUsed)); // Attacks remaining (2, 1, or 0)
-            this.Data.AddLong(war.WarId);
-            this.Data.AddLong(0L); // Unknown 64-bit
-            this.Data.Add(m.ClanCastleLevel);
-            this.Data.AddInt(m.ClanCastleMaxCapacity);
+
+            // Clan Castle data flag (byte_0x8c)
+            this.Data.Add((byte)1);
             this.Data.AddString(m.ClanCastleMessage ?? "");
+            this.Data.AddInt(m.ClanCastleMaxCapacity);
             this.Data.AddInt(m.GetClanCastleUsedCapacity());
+            this.Data.AddInt(0);
+            this.Data.AddInt(0);
 
-            this.Data.AddInt(m.Donations.Count);
-            foreach (var d in m.Donations)
-            {
-                this.Data.AddLong(d.DonorId);
-                this.Data.AddInt(d.TroopCount);
-                this.Data.AddInt(d.TroopDataId);
-            }
+            // WarId
+            this.Data.Add((byte)1);
+            this.Data.AddLong(war.WarId);
 
-            this.Data.AddInt(m.AttacksConceded.Count);
-            foreach (var a in m.AttacksConceded)
-            {
-                this.Data.AddLong(a.AttackerClanId);
-                this.Data.AddLong(a.AttackerUserId);
-                this.Data.AddLong(a.DefenderClanId);
-                this.Data.AddLong(a.DefenderUserId);
-                this.Data.AddString(a.AttackerName ?? "Attacker");
-                this.Data.AddString(a.DefenderName ?? "Defender");
-                this.Data.AddInt(a.Stars);
-                this.Data.AddInt(a.Order);
-                this.Data.AddInt(a.DestructionPercentage);
-                this.Data.AddInt(a.Stars);
-                this.Data.AddInt(8);
-                this.Data.AddInt(a.Duration > 0 ? a.Duration : 120);
-                this.Data.AddInt(6);
-                this.Data.Add((byte)1);
-                this.Data.AddLong(a.ReplayId);
-            }
+            // Optional Long 1
+            this.Data.Add((byte)0);
+
+            // Optional Long 2
+            this.Data.Add((byte)0);
+
+            // Trailing fields
+            this.Data.AddInt(m.ClanCastleLevel);
+            this.Data.AddInt(0);
+            this.Data.AddInt(0);
+            this.Data.AddString("");
+            this.Data.AddInt(0);
+
+            // Attacks conceded count
+            this.Data.AddInt(0);
         }
 
         private void EncodeDefaultWarMap()
@@ -218,7 +197,8 @@ namespace CSS.Packets.Messages.Server
             this.Data.AddInt(0); // 0 members
 
             // Separator
-            this.Data.Add((byte)3);
+            this.Data.Add((byte)1);
+            this.Data.Add((byte)1);
             this.Data.AddInt(-1);
             this.Data.AddInt(1);
             this.Data.AddInt(0);
@@ -237,7 +217,8 @@ namespace CSS.Packets.Messages.Server
             this.Data.AddInt(0);
 
             // Tail
-            this.Data.Add((byte)3);
+            this.Data.Add((byte)1);
+            this.Data.Add((byte)1);
             this.Data.AddInt(-1);
             this.Data.AddInt(1);
             this.Data.AddInt(0);

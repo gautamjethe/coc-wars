@@ -1234,6 +1234,7 @@
     <Compile Include="Packets\Messages\Client\AllianceInviteMessage.cs" />
     <Compile Include="Packets\Messages\Client\AllianceWarAttackAvatarMessage.cs" />
     <Compile Include="Packets\Messages\Client\AskForAllianceWarDataMessage.cs" />
+    <Compile Include="Packets\Messages\Client\AskForAllianceWarMapDataMessage.cs" />
     <Compile Include="Packets\Messages\Client\AskForAvatarProfileMessage.cs" />
     <Compile Include="Packets\Messages\Client\AskForBookmarkMessage.cs" />
     <Compile Include="Packets\Messages\Client\ChangeAllianceMemberRoleMessage.cs" />

@@ -128,7 +128,7 @@ namespace CSS.Test
             if (alliance.m_vAllianceExperience <= initialClanXp) throw new Exception("Expected AllianceExperience to increase!");
             Console.WriteLine($"       War concluded: '{war.Clan1.ClanName}' WON! Clan XP: {alliance.m_vAllianceExperience} (+{alliance.m_vAllianceExperience - initialClanXp})");
 
-            Console.WriteLine("[10/10] Validating Packet 24338 (AllianceWarHistoryMessage)...");
+            Console.WriteLine("[10/12] Validating Packet 24338 (AllianceWarHistoryMessage)...");
             var historyMsg = new AllianceWarHistoryMessage(null, alliance);
             historyMsg.Encode();
             byte[] historyBytes = historyMsg.Data.ToArray();
@@ -136,6 +136,64 @@ namespace CSS.Test
             var historyList = ClanWarManager.GetWarHistory(alliance.m_vAllianceId);
             if (historyList.Count < 1) throw new Exception($"Expected at least 1 war in history, got {historyList.Count}");
             Console.WriteLine($"       History packet encoded: {historyBytes.Length} bytes with {historyList.Count} completed war(s).");
+
+            Console.WriteLine("[11/12] Testing Solo Player Dummy Generation in 5v5 War...");
+            Alliance soloAlliance = new Alliance(5555)
+            {
+                m_vAllianceName = "Solo Champion Clan",
+                m_vAllianceBadgeData = 0x5B002B54,
+                m_vAllianceLevel = 6,
+                m_vAllianceType = 0
+            };
+            ResourcesManager.AddAllianceInMemory(soloAlliance);
+            long soloPlayerId = 8888001;
+            Level soloPlayer = new Level(soloPlayerId);
+            soloPlayer.Avatar.UserId = soloPlayerId;
+            soloPlayer.Avatar.AvatarName = "SoloLeader";
+            soloPlayer.Avatar.m_vTownHallLevel = 10;
+            soloPlayer.Avatar.AllianceId = 5555;
+            ResourcesManager.m_vInMemoryLevels[soloPlayerId] = soloPlayer;
+            soloAlliance.AddAllianceMember(new AllianceMemberEntry(soloPlayerId) { Role = 2, WarOptInStatus = 1 });
+
+            if (soloAlliance.GetAllianceMembers().Count != 1)
+                throw new Exception("Expected exactly 1 member in solo alliance before war!");
+
+            ClanWar soloWar = await ClanWarManager.StartWar(soloAlliance, null, 5);
+            if (soloWar == null) throw new Exception("StartWar failed for solo clan!");
+            if (soloWar.Clan1.Members.Count != 5) throw new Exception($"Expected 5 Clan1 members, got {soloWar.Clan1.Members.Count}");
+            if (soloWar.Clan2.Members.Count != 5) throw new Exception($"Expected 5 Clan2 members, got {soloWar.Clan2.Members.Count}");
+            if (soloAlliance.GetAllianceMembers().Count != 5)
+                throw new Exception($"Expected soloAlliance to now have 5 members, got {soloAlliance.GetAllianceMembers().Count}");
+
+            Alliance aiAlliance = ObjectManager.GetAlliance(soloWar.Clan2.ClanId);
+            if (aiAlliance == null) throw new Exception("AI Alliance not found in ObjectManager!");
+            if (aiAlliance.GetAllianceMembers().Count != 5)
+                throw new Exception($"Expected AI Alliance to have 5 members, got {aiAlliance.GetAllianceMembers().Count}");
+
+            // Verify all 5 Clan 1 members resolve via ResourcesManager.GetPlayer
+            foreach (var m in soloWar.Clan1.Members)
+            {
+                Level p = await ResourcesManager.GetPlayer(m.UserId);
+                if (p == null) throw new Exception($"Failed to resolve Clan1 member {m.UserId} ({m.Name}) from ResourcesManager!");
+                if (string.IsNullOrEmpty(p.Avatar.AvatarName)) throw new Exception($"Clan1 member {m.UserId} has empty AvatarName!");
+            }
+
+            // Verify all 5 Clan 2 members resolve via ResourcesManager.GetPlayer
+            foreach (var m in soloWar.Clan2.Members)
+            {
+                Level p = await ResourcesManager.GetPlayer(m.UserId);
+                if (p == null) throw new Exception($"Failed to resolve Clan2 member {m.UserId} ({m.Name}) from ResourcesManager!");
+                if (string.IsNullOrEmpty(p.Avatar.AvatarName)) throw new Exception($"Clan2 member {m.UserId} has empty AvatarName!");
+            }
+            Console.WriteLine($"       Solo clan successfully populated with 4 dummies (Total: 5). Opponent '{soloWar.Clan2.ClanName}' created with 5 dummies.");
+
+            Console.WriteLine("[12/12] Validating War Map Packet 24335 for Solo Clan War with Dummy Bases...");
+            var soloMapMsg = new AllianceWarMapDataMessage(null, soloWar);
+            soloMapMsg.Encode();
+            byte[] soloMapBytes = soloMapMsg.Data.ToArray();
+            if (soloMapBytes == null || soloMapBytes.Length < 1000)
+                throw new Exception($"Solo war map packet length unexpected: {soloMapBytes?.Length ?? 0} bytes!");
+            Console.WriteLine($"       Solo war map encoded successfully: {soloMapBytes.Length} bytes for 10 total bases (5v5).");
         }
     }
 }

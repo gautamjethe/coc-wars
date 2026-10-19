@@ -53,6 +53,7 @@ namespace CSS.Packets
                 {14325, typeof(AskForAvatarProfileMessage)},
                 {14331, typeof(AskForAllianceWarDataMessage)},
                 {14332, typeof(AskForAllianceWarDataMessage)},
+                {14334, typeof(AskForAllianceWarMapDataMessage)},
                 {14336, typeof(AskForAllianceWarHistoryMessage)},
                 {14341, typeof(AskForBookmarkMessage)},
                 {14343, typeof(AddToBookmarkMessage)},

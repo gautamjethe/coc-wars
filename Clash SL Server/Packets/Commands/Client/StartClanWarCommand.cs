@@ -65,15 +65,22 @@ namespace CSS.Packets.Commands.Client
                 int teamSize = WarSize > 0 ? WarSize : 10;
 
                 // Pick best matching standard size: 5, 10, 15, 20, 25, 30, 40, 50
-                if (memberCount >= 50 && teamSize >= 50) teamSize = 50;
-                else if (memberCount >= 40 && teamSize >= 40) teamSize = 40;
-                else if (memberCount >= 30 && teamSize >= 30) teamSize = 30;
-                else if (memberCount >= 25 && teamSize >= 25) teamSize = 25;
-                else if (memberCount >= 20 && teamSize >= 20) teamSize = 20;
-                else if (memberCount >= 15 && teamSize >= 15) teamSize = 15;
-                else if (memberCount >= 10 && teamSize >= 10) teamSize = 10;
-                else if (memberCount >= 5) teamSize = 5;
-                else teamSize = Math.Max(1, memberCount); // Solo/testing support
+                if (WarSize >= 50) teamSize = 50;
+                else if (WarSize >= 40) teamSize = 40;
+                else if (WarSize >= 30) teamSize = 30;
+                else if (WarSize >= 25) teamSize = 25;
+                else if (WarSize >= 20) teamSize = 20;
+                else if (WarSize >= 15) teamSize = 15;
+                else if (WarSize >= 10) teamSize = 10;
+                else if (WarSize == 5) teamSize = 5;
+                else if (memberCount >= 50) teamSize = 50;
+                else if (memberCount >= 40) teamSize = 40;
+                else if (memberCount >= 30) teamSize = 30;
+                else if (memberCount >= 25) teamSize = 25;
+                else if (memberCount >= 20) teamSize = 20;
+                else if (memberCount >= 15) teamSize = 15;
+                else if (memberCount >= 10) teamSize = 10;
+                else teamSize = 5; // Standard minimum Clan War size (5v5); remaining slots filled with dummy members
 
                 // Start the war!
                 var war = await ClanWarManager.StartWar(clan, null, teamSize);

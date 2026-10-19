@@ -141,7 +141,7 @@ namespace CSS.Logic
                     long id = jsonMember["avatar_id"].ToObject<long>();
                     Level pl = await ResourcesManager.GetPlayer(id);
                     AllianceMemberEntry member = new AllianceMemberEntry(id);
-                    m_vScore = m_vScore + pl.Avatar.GetScore();
+                    m_vScore = m_vScore + (pl?.Avatar?.GetScore() ?? 1000);
                     member.Load(jsonMember);
                     m_vAllianceMembers.Add(id, member);
                 }

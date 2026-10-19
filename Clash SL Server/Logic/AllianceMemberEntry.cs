@@ -49,7 +49,7 @@ namespace CSS.Logic
             List<byte> data = new List<byte>();
             Level avatar = await ResourcesManager.GetPlayer(AvatarId);
             data.AddLong(AvatarId);
-            if(avatar.Avatar.AvatarName != null)
+            if (avatar?.Avatar != null && avatar.Avatar.AvatarName != null)
             {
                 data.AddString(avatar.Avatar.AvatarName);
                 data.AddInt(Role);

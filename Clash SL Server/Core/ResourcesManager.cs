@@ -93,10 +93,14 @@ namespace CSS.Core
             if (result == null && m_vDatabase != null)
             {
                 result = await m_vDatabase.GetAccount(id);
-                if (persistent)
+                if (persistent && result != null)
                 {
                     LoadLevel(result);
                 }
+            }
+            if (result == null)
+            {
+                result = ClanWarManager.GetWarMemberAsLevel(id);
             }
             return result;
         }
