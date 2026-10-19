@@ -6,14 +6,14 @@ using CSS.Logic;
 
 namespace CSS.Packets.Messages.Server
 {
-    // Packet 24335
+    // Packet 24334
     internal class AllianceWarMapDataMessage : Message
     {
         private ClanWar m_vWar;
 
         public AllianceWarMapDataMessage(Device client, ClanWar war = null) : base(client)
         {
-            this.Identifier = 24335;
+            this.Identifier = 24334;
             this.m_vWar = war;
         }
 

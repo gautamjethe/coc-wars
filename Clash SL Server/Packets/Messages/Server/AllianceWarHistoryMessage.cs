@@ -4,13 +4,13 @@ using CSS.Logic;
 
 namespace CSS.Packets.Messages.Server
 {
-    // Packet 24338
+    // Packet 24336
     internal class AllianceWarHistoryMessage : Message
     {
         readonly Alliance m_vHomeAlliance;
         public AllianceWarHistoryMessage(Device client, Alliance home) : base(client)
         {
-            this.Identifier = 24338;
+            this.Identifier = 24336;
             m_vHomeAlliance = home;
         }
 

@@ -4,14 +4,14 @@ using CSS.Logic;
 
 namespace CSS.Packets.Messages.Server
 {
-    // Packet 24334
+    // Packet 24325
     internal class AvatarProfileMessage : Message
     {
         internal Level Level;
 
         public AvatarProfileMessage(Device client) : base(client)
         {
-            this.Identifier = 24334;
+            this.Identifier = 24325;
         }
 
         internal override async void Encode()
