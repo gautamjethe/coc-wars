@@ -109,7 +109,7 @@ namespace CSS.Packets.Messages.Server
             this.Data.AddInt(60);
             this.Data.Add((byte)1);
             this.Data.AddLong(war.WarId);
-            this.Data.Add((byte)0);
+            this.Data.AddInt(0);
             this.Data.Add((byte)1);
             this.Data.AddLong(c2.ClanId);
 
@@ -247,7 +247,7 @@ namespace CSS.Packets.Messages.Server
             this.Data.AddInt(60);
             this.Data.Add((byte)1);
             this.Data.AddLong(0);
-            this.Data.Add((byte)0);
+            this.Data.AddInt(0);
             this.Data.Add((byte)1);
             this.Data.AddLong(0);
             this.Data.AddInt(0); // 0 attacks

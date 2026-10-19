@@ -251,6 +251,7 @@ namespace CSS.Packets.Messages.Client
                     if (war != null && war.State != ClanWarState.NOT_IN_WAR)
                     {
                         new AllianceWarDataMessage(this.Device, war).Send();
+                        new AllianceWarMapDataMessage(this.Device, war).Send();
                     }
                 }
                 else

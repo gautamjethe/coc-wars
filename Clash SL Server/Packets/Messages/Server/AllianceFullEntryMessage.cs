@@ -38,8 +38,8 @@ namespace CSS.Packets.Messages.Server
                     this.Data.Add((byte)0);
                 }
 
-                this.Data.Add((byte)0);
                 this.Data.AddInt(0);
+                this.Data.Add((byte)0);
                 this.Data.AddRange(m_vAlliance.EncodeFullEntry());
             }
             catch (Exception)

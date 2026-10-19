@@ -93,6 +93,7 @@ namespace CSS.Packets.Commands.Client
                         {
                             new AllianceFullEntryMessage(l.Client, clan).Send();
                             new AllianceWarDataMessage(l.Client, war).Send();
+                            new AllianceWarMapDataMessage(l.Client, war).Send();
                             new AllianceStreamEntryMessage(l.Client) { StreamEntry = eventStreamEntry }.Send();
                         }
                     }

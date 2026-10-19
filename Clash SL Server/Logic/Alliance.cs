@@ -91,8 +91,8 @@ namespace CSS.Logic
             data.AddInt(this.m_vAllianceExperience);
             data.AddInt(this.m_vAllianceLevel);
             data.AddInt(0);
-            data.AddInt(0);
             data.Add(this.m_vWarLogPublic);
+            data.AddInt(0);
             data.Add(this.m_vFriendlyWar);
             return data.ToArray();
         }

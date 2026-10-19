@@ -20,9 +20,16 @@ namespace CSS.Packets.Messages.Client
             {
                 long clanId = this.Device?.Player?.Avatar?.AllianceId ?? 0;
                 ClanWar war = null;
+                Alliance alliance = null;
                 if (clanId > 0)
                 {
                     war = ClanWarManager.GetWarByClanId(clanId);
+                    alliance = ObjectManager.GetAlliance(clanId);
+                }
+
+                if (alliance != null)
+                {
+                    new AllianceFullEntryMessage(this.Device, alliance).Send();
                 }
 
                 new AllianceWarDataMessage(this.Device, war).Send();
@@ -30,6 +37,10 @@ namespace CSS.Packets.Messages.Client
                 if (war != null)
                 {
                     new AllianceWarMapDataMessage(this.Device, war).Send();
+                }
+                else
+                {
+                    new AllianceWarMapDataMessage(this.Device).Send();
                 }
             }
             catch (Exception ex)
