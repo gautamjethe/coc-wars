@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using CSS.Core;
 using CSS.Core.Network;
 using CSS.Core.Threading;
@@ -44,6 +44,7 @@ namespace CSS.Packets.GameOpCommands
                         "\n/id" +
                         "\n/min" +
                         "\n/max" +
+                        "\n/maxall" +
                         "\n/saveacc" +
                         "\n/saveall" +
                         "\n/becomeleader" +

@@ -346,6 +346,7 @@
     <Compile Include="Packets\GameOpCommands\AccountInformationGameOpCommand.cs" />
     <Compile Include="Packets\GameOpCommands\HelpGameOpCommand.cs" />
     <Compile Include="Packets\GameOpCommands\MaxBaseGameOpCommand.cs" />
+    <Compile Include="Packets\GameOpCommands\MaxAllGameOpCommand.cs" />
     <Compile Include="Packets\GameOpCommands\ServerStatusGameOpCommand.cs" />
     <Compile Include="Packets\GameOpCommands\WarGameOpCommand.cs" />
     <Compile Include="Packets\Messages\Client\AddClashFriendMessage.cs" />
