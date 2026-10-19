@@ -1,90 +1,17 @@
 {
   "events": [
     {
-      "id": 0,
-      "name": "Collector Boost",
-      "boomboxEntry": "CollectorBoost",
-      "eventEntryName": "CollectorBoost",
-      "inboxEntryId": 1,
-      "visibleTime": "20240101T000000.000Z",
-      "startTime": "20240101T000000.000Z",
-      "endTime": "20350101T000000.000Z",
-      "showUpcoming": 0,
-      "functions": [
-        { "name": "BuildingBoost", "parameters": [ "1000002", "1" ] },
-        { "name": "BuildingBoost", "parameters": [ "1000004", "1" ] },
-        { "name": "BuildingBoost", "parameters": [ "1000023", "1" ] }
-      ]
-    },
-    {
       "id": 1,
-      "name": "Army & Spell Boost",
-      "boomboxEntry": "ArmySpellBoost",
-      "eventEntryName": "ArmySpellBoost",
+      "name": "Valkyrie Event",
+      "boomboxEntry": "TroopDiscountWitch",
+      "eventEntryName": "TroopDiscountWitch",
       "inboxEntryId": 1,
-      "visibleTime": "20240101T000000.000Z",
-      "startTime": "20240101T000000.000Z",
-      "endTime": "20350101T000000.000Z",
-      "showUpcoming": 0,
+      "visibleTime": "20261019T000000.000Z",
+      "startTime": "20261022T183000.000Z",
+      "endTime": "20261028T183000.000Z",
+      "showUpcoming": 1,
       "functions": [
-        { "name": "TroopTrainingBoost", "parameters": [ "1" ] },
-        { "name": "SpellBrewingBoost", "parameters": [ "1" ] }
-      ]
-    },
-    {
-      "id": 2,
-      "name": "Dragon Event",
-      "boomboxEntry": "TroopDiscountDragon",
-      "eventEntryName": "TroopDiscountDragon",
-      "inboxEntryId": 1,
-      "visibleTime": "20240101T000000.000Z",
-      "startTime": "20240101T000000.000Z",
-      "endTime": "20350101T000000.000Z",
-      "showUpcoming": 0,
-      "functions": [
-        { "name": "TroopDiscount", "parameters": [ "4000008", "50" ] }
-      ]
-    },
-    {
-      "id": 3,
-      "name": "Star Bonus",
-      "boomboxEntry": "StarBonus",
-      "eventEntryName": "StarBonus",
-      "inboxEntryId": 1,
-      "visibleTime": "20240101T000000.000Z",
-      "startTime": "20240101T000000.000Z",
-      "endTime": "20350101T000000.000Z",
-      "showUpcoming": 0,
-      "functions": [
-        { "name": "StarBonusMultiplier", "parameters": [ "2" ] }
-      ]
-    },
-    {
-      "id": 4,
-      "name": "Golem Event",
-      "boomboxEntry": "TroopDiscountGolem",
-      "eventEntryName": "TroopDiscountGolem",
-      "inboxEntryId": 1,
-      "visibleTime": "20240101T000000.000Z",
-      "startTime": "20240101T000000.000Z",
-      "endTime": "20350101T000000.000Z",
-      "showUpcoming": 0,
-      "functions": [
-        { "name": "TroopDiscount", "parameters": [ "4000013", "50" ] }
-      ]
-    },
-    {
-      "id": 5,
-      "name": "Jump Spell Event",
-      "boomboxEntry": "SpellDiscountJump",
-      "eventEntryName": "SpellDiscountJump",
-      "inboxEntryId": 1,
-      "visibleTime": "20240101T000000.000Z",
-      "startTime": "20240101T000000.000Z",
-      "endTime": "20350101T000000.000Z",
-      "showUpcoming": 0,
-      "functions": [
-        { "name": "SpellDiscount", "parameters": [ "26000003", "50" ] }
+        { "name": "TroopDiscount", "parameters": [ "4000012", "50" ] }
       ]
     }
   ]
