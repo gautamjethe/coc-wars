@@ -25,8 +25,8 @@ namespace CSS.Core
         public static Dictionary<int, string> NpcLevels;
         public static Dictionary<int, string> m_vRandomBases;
         public static FingerPrint FingerPrint;
-        static int MaxPlayerID;
-        static int MaxAllianceID;
+        static long MaxPlayerID;
+        static long MaxAllianceID;
 
         public ObjectManager()
         {
@@ -38,8 +38,8 @@ namespace CSS.Core
             m_vRandomBases         = new Dictionary<int, string>();
             FingerPrint            = new FingerPrint();
 
-            MaxPlayerID            = Convert.ToInt32(m_vDatabase.GetMaxPlayerId() + 1);
-            MaxAllianceID          = Convert.ToInt32(m_vDatabase.GetMaxAllianceId() + 1);
+            MaxPlayerID            = m_vDatabase.GetMaxPlayerId() + 1;
+            MaxAllianceID          = m_vDatabase.GetMaxAllianceId() + 1;
 
             m_vAvatarSeed          = MaxPlayerID;
             m_vAllianceSeed        = MaxAllianceID;
@@ -54,7 +54,7 @@ namespace CSS.Core
 
             TimerReferenceRedis = new Timer(SaveRedis, null, 10000, 40000);
             TimerReferenceMysql = new Timer(SaveMysql, null, 40000, 27000);
-            Say($"CSS Database has been succesfully loaded. ({Convert.ToInt32(MaxAllianceID + MaxPlayerID)} Tables)");
+            Say($"CSS Database has been succesfully loaded. ({MaxAllianceID + MaxPlayerID} Tables)");
         }
 
         private static void SaveRedis(object state)
@@ -160,9 +160,9 @@ namespace CSS.Core
             ResourcesManager.RemoveAllianceFromMemory(id);
         }
 
-        public static int GetMaxAllianceID() => MaxAllianceID;
+        public static long GetMaxAllianceID() => MaxAllianceID;
 
-        public static int GetMaxPlayerID() => MaxPlayerID;
+        public static long GetMaxPlayerID() => MaxPlayerID;
 
         public static int RandomBaseCount() => m_vRandomBaseAmount;
 

@@ -274,29 +274,10 @@ namespace CSS.Core
 
         public long GetMaxAllianceId()
         {
-            const string SQL = "SELECT coalesce(MAX(ClanId), 0) FROM Clan";
-            int Seed = -1;
-
-            using (MySqlConnection Conn = new MySqlConnection(EnsureConnectionString()))
-            {
-                Conn.Open();
-
-                using (MySqlCommand CMD = new MySqlCommand(SQL, Conn))
-                {
-                    CMD.Prepare();
-                    Seed = Convert.ToInt32(CMD.ExecuteScalar());
-                }
-            }
-
-            return Seed;
-        }
-
-        public long GetMaxPlayerId()
-        {
             try
             {
-                const string SQL = "SELECT coalesce(MAX(PlayerId), 0) FROM Player";
-                int Seed = -1;
+                const string SQL = "SELECT coalesce(MAX(ClanId), 0) FROM Clan";
+                long Seed = -1;
 
                 using (MySqlConnection Conn = new MySqlConnection(EnsureConnectionString()))
                 {
@@ -305,7 +286,34 @@ namespace CSS.Core
                     using (MySqlCommand CMD = new MySqlCommand(SQL, Conn))
                     {
                         CMD.Prepare();
-                        Seed = Convert.ToInt32(CMD.ExecuteScalar());
+                        Seed = Convert.ToInt64(CMD.ExecuteScalar());
+                    }
+                }
+
+                return Seed;
+            }
+            catch (Exception ex)
+            {
+                Error($"DatabaseManager.GetMaxAllianceId failed: {ex.Message}");
+            }
+            return 0;
+        }
+
+        public long GetMaxPlayerId()
+        {
+            try
+            {
+                const string SQL = "SELECT coalesce(MAX(PlayerId), 0) FROM Player";
+                long Seed = -1;
+
+                using (MySqlConnection Conn = new MySqlConnection(EnsureConnectionString()))
+                {
+                    Conn.Open();
+
+                    using (MySqlCommand CMD = new MySqlCommand(SQL, Conn))
+                    {
+                        CMD.Prepare();
+                        Seed = Convert.ToInt64(CMD.ExecuteScalar());
                     }
                 }
 
@@ -317,8 +325,6 @@ namespace CSS.Core
                 Error("An exception occured when reconnecting to the MySQL Server.");
                 Error("Please check your database configuration!");
                 Error(ex.Message);
-                Console.ReadKey();
-                CSSControl.CSSRestart();
             }
             return 0;
         }
