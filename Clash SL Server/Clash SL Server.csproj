@@ -335,6 +335,7 @@
     <Compile Include="Packets\Commands\Client\EventsSeenCommand.cs" />
     <Compile Include="Packets\Commands\Client\MoveBuildingsCommand.cs" />
     <Compile Include="Packets\Commands\Client\StartClanWarCommand.cs" />
+    <Compile Include="Packets\Commands\Client\CancelClanWarSearchCommand.cs" />
     <Compile Include="Packets\Commands\Client\TrainQuickUnitsCommand.cs" />
     <Compile Include="Packets\Commands\Server\AllianceRoleUpdateCommand.cs" />
     <Compile Include="Packets\Commands\Server\AllianceSettingChangedCommand.cs" />

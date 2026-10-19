@@ -81,6 +81,7 @@ namespace CSS.Logic
         public long AttackerClanId { get; set; }
         public long AttackerUserId { get; set; }
         public string AttackerName { get; set; }
+        public int AttackerMapPosition { get; set; }
         public long DefenderClanId { get; set; }
         public long DefenderUserId { get; set; }
         public string DefenderName { get; set; }
@@ -89,6 +90,7 @@ namespace CSS.Logic
         public int DestructionPercentage { get; set; }
         public int Duration { get; set; }
         public long Timestamp { get; set; }
+        public DateTime AttackTime => new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddSeconds(Timestamp);
         public long ReplayId { get; set; }
 
         public WarAttackEntry()
@@ -105,6 +107,7 @@ namespace CSS.Logic
                 { "attacker_clan_id", AttackerClanId },
                 { "attacker_user_id", AttackerUserId },
                 { "attacker_name", AttackerName ?? "" },
+                { "attacker_pos", AttackerMapPosition },
                 { "defender_clan_id", DefenderClanId },
                 { "defender_user_id", DefenderUserId },
                 { "defender_name", DefenderName ?? "" },
@@ -123,6 +126,7 @@ namespace CSS.Logic
             AttackerClanId = json["attacker_clan_id"]?.ToObject<long>() ?? 0;
             AttackerUserId = json["attacker_user_id"]?.ToObject<long>() ?? 0;
             AttackerName = json["attacker_name"]?.ToObject<string>() ?? "";
+            AttackerMapPosition = json["attacker_pos"]?.ToObject<int>() ?? 0;
             DefenderClanId = json["defender_clan_id"]?.ToObject<long>() ?? 0;
             DefenderUserId = json["defender_user_id"]?.ToObject<long>() ?? 0;
             DefenderName = json["defender_name"]?.ToObject<string>() ?? "";
@@ -537,6 +541,7 @@ namespace CSS.Logic
                 AttackerClanId = attackerClan.ClanId,
                 AttackerUserId = attacker.UserId,
                 AttackerName = attacker.Name,
+                AttackerMapPosition = attacker.MapPosition,
                 DefenderClanId = defenderClan.ClanId,
                 DefenderUserId = defender.UserId,
                 DefenderName = defender.Name,
@@ -869,11 +874,19 @@ namespace CSS.Logic
         }
     }
 
+    public class SearchingClanInfo
+    {
+        public long ClanId { get; set; }
+        public int TeamSize { get; set; }
+        public DateTime SearchStartTime { get; set; }
+        public int TimeoutSeconds { get; set; } = 10;
+    }
+
     public static class ClanWarManager
     {
         public static ConcurrentDictionary<long, ClanWar> Wars = new ConcurrentDictionary<long, ClanWar>();
         public static ConcurrentDictionary<long, long> ClanToWarMap = new ConcurrentDictionary<long, long>();
-        public static List<long> SearchingClans = new List<long>();
+        public static ConcurrentDictionary<long, SearchingClanInfo> SearchingClans = new ConcurrentDictionary<long, SearchingClanInfo>();
         public static ConcurrentDictionary<long, ActiveWarBattleSession> ActiveBattles = new ConcurrentDictionary<long, ActiveWarBattleSession>();
         public static ConcurrentDictionary<long, List<ClanWar>> ClanWarHistories = new ConcurrentDictionary<long, List<ClanWar>>();
 
@@ -886,6 +899,87 @@ namespace CSS.Logic
         private static readonly string WarsFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Gamefiles", "database", "clan_wars.json");
         private static readonly string HistoryFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Gamefiles", "database", "clan_war_history.json");
 
+        public static bool IsClanSearching(long clanId)
+        {
+            return SearchingClans.ContainsKey(clanId);
+        }
+
+        internal static async Task StartSearch(Alliance clan, int teamSize = 10, int timeoutSeconds = 10)
+        {
+            if (clan == null) return;
+            long clanId = clan.m_vAllianceId;
+
+            var existingWar = GetWarByClanId(clanId);
+            if (existingWar != null && existingWar.State != ClanWarState.WAR_ENDED && existingWar.State != ClanWarState.NOT_IN_WAR)
+            {
+                return;
+            }
+
+            if (existingWar != null && existingWar.State == ClanWarState.WAR_ENDED)
+            {
+                ClanToWarMap.TryRemove(clanId, out _);
+            }
+
+            clan.m_vWarState = (int)ClanWarState.SEARCHING;
+            SearchingClans[clanId] = new SearchingClanInfo
+            {
+                ClanId = clanId,
+                TeamSize = teamSize,
+                SearchStartTime = DateTime.UtcNow,
+                TimeoutSeconds = timeoutSeconds
+            };
+
+            // Notify online members of search state
+            foreach (var mem in clan.GetAllianceMembers())
+            {
+                var player = await ResourcesManager.GetPlayer(mem.AvatarId);
+                if (player?.Client != null)
+                {
+                    new AllianceWarDataMessage(player.Client).Send();
+                }
+            }
+
+            Logger.Say($"Clan '{clan.m_vAllianceName}' started searching for Clan War ({teamSize}v{teamSize})...");
+
+            // Check if another real clan is currently searching for the same team size!
+            foreach (var kvp in SearchingClans)
+            {
+                if (kvp.Key != clanId && kvp.Value.TeamSize == teamSize)
+                {
+                    Alliance otherClan = ObjectManager.GetAlliance(kvp.Key);
+                    if (otherClan != null)
+                    {
+                        SearchingClans.TryRemove(clanId, out _);
+                        SearchingClans.TryRemove(kvp.Key, out _);
+                        Logger.Say($"Matchmaking found! Clan '{clan.m_vAllianceName}' vs Clan '{otherClan.m_vAllianceName}' ({teamSize}v{teamSize})");
+                        await StartWar(clan, otherClan, teamSize);
+                        return;
+                    }
+                }
+            }
+        }
+
+        public static async void CancelSearch(long clanId)
+        {
+            if (SearchingClans.TryRemove(clanId, out _))
+            {
+                Alliance clan = ObjectManager.GetAlliance(clanId);
+                if (clan != null)
+                {
+                    clan.m_vWarState = (int)ClanWarState.NOT_IN_WAR;
+                    foreach (var mem in clan.GetAllianceMembers())
+                    {
+                        var player = await ResourcesManager.GetPlayer(mem.AvatarId);
+                        if (player?.Client != null)
+                        {
+                            new AllianceWarDataMessage(player.Client).Send();
+                        }
+                    }
+                    Logger.Say($"Clan '{clan.m_vAllianceName}' cancelled Clan War matchmaking search.");
+                }
+            }
+        }
+
         public static void SaveState()
         {
             try
@@ -897,6 +991,12 @@ namespace CSS.Logic
                 foreach (var w in Wars.Values)
                 {
                     warsArray.Add(w.SaveToJson());
+
+                    try
+                    {
+                        Resources.DatabaseManager?.SaveClanWar(w);
+                    }
+                    catch { }
                 }
                 File.WriteAllText(WarsFilePath, warsArray.ToString(Formatting.None));
 
@@ -925,7 +1025,26 @@ namespace CSS.Logic
         {
             try
             {
-                if (File.Exists(WarsFilePath))
+                bool loadedFromDb = false;
+                try
+                {
+                    var dbWars = Resources.DatabaseManager?.GetActiveClanWars();
+                    if (dbWars != null && dbWars.Count > 0)
+                    {
+                        foreach (var war in dbWars)
+                        {
+                            Wars[war.WarId] = war;
+                            if (war.Clan1 != null) ClanToWarMap[war.Clan1.ClanId] = war.WarId;
+                            if (war.Clan2 != null) ClanToWarMap[war.Clan2.ClanId] = war.WarId;
+                            if (war.WarId >= m_vWarSeed) m_vWarSeed = war.WarId + 1;
+                            RestoreWarMembersInMemory(war);
+                        }
+                        loadedFromDb = true;
+                    }
+                }
+                catch { }
+
+                if (!loadedFromDb && File.Exists(WarsFilePath))
                 {
                     string content = File.ReadAllText(WarsFilePath);
                     if (!string.IsNullOrWhiteSpace(content))
@@ -939,50 +1058,7 @@ namespace CSS.Logic
                             if (war.Clan1 != null) ClanToWarMap[war.Clan1.ClanId] = war.WarId;
                             if (war.Clan2 != null) ClanToWarMap[war.Clan2.ClanId] = war.WarId;
                             if (war.WarId >= m_vWarSeed) m_vWarSeed = war.WarId + 1;
-
-                            // Re-register dummy members in memory so they are always resolvable
-                            if (war.Clan1?.Members != null)
-                            {
-                                foreach (var m in war.Clan1.Members)
-                                {
-                                    if (m.UserId > 10000000 && !ResourcesManager.m_vInMemoryLevels.ContainsKey(m.UserId))
-                                    {
-                                        CreateDummyLevel(m.UserId, m.ClanId, m.Name, m.TownHallLevel);
-                                    }
-                                }
-                            }
-                            if (war.Clan2?.Members != null)
-                            {
-                                foreach (var m in war.Clan2.Members)
-                                {
-                                    if (m.UserId > 10000000 && !ResourcesManager.m_vInMemoryLevels.ContainsKey(m.UserId))
-                                    {
-                                        CreateDummyLevel(m.UserId, m.ClanId, m.Name, m.TownHallLevel);
-                                    }
-                                }
-
-                                if (!ResourcesManager.InMemoryAlliancesContain(war.Clan2.ClanId))
-                                {
-                                    var aiAlliance = new Alliance(war.Clan2.ClanId)
-                                    {
-                                        m_vAllianceName = war.Clan2.ClanName,
-                                        m_vAllianceBadgeData = war.Clan2.ClanBadge,
-                                        m_vAllianceLevel = war.Clan2.ClanLevel,
-                                        m_vAllianceType = 0,
-                                        m_vWarLogPublic = 1
-                                    };
-                                    foreach (var m in war.Clan2.Members)
-                                    {
-                                        aiAlliance.AddAllianceMember(new AllianceMemberEntry(m.UserId)
-                                        {
-                                            Role = (m.MapPosition == 0 ? 2 : 1),
-                                            WarOptInStatus = 1,
-                                            Order = m.MapPosition + 1
-                                        });
-                                    }
-                                    ResourcesManager.AddAllianceInMemory(aiAlliance);
-                                }
-                            }
+                            RestoreWarMembersInMemory(war);
                         }
                     }
                 }
@@ -1019,6 +1095,52 @@ namespace CSS.Logic
             }
         }
 
+        private static void RestoreWarMembersInMemory(ClanWar war)
+        {
+            if (war.Clan1?.Members != null)
+            {
+                foreach (var m in war.Clan1.Members)
+                {
+                    if (m.UserId > 10000000 && !ResourcesManager.m_vInMemoryLevels.ContainsKey(m.UserId))
+                    {
+                        CreateDummyLevel(m.UserId, m.ClanId, m.Name, m.TownHallLevel);
+                    }
+                }
+            }
+            if (war.Clan2?.Members != null)
+            {
+                foreach (var m in war.Clan2.Members)
+                {
+                    if (m.UserId > 10000000 && !ResourcesManager.m_vInMemoryLevels.ContainsKey(m.UserId))
+                    {
+                        CreateDummyLevel(m.UserId, m.ClanId, m.Name, m.TownHallLevel);
+                    }
+                }
+
+                if (!ResourcesManager.InMemoryAlliancesContain(war.Clan2.ClanId))
+                {
+                    var aiAlliance = new Alliance(war.Clan2.ClanId)
+                    {
+                        m_vAllianceName = war.Clan2.ClanName,
+                        m_vAllianceBadgeData = war.Clan2.ClanBadge,
+                        m_vAllianceLevel = war.Clan2.ClanLevel,
+                        m_vAllianceType = 0,
+                        m_vWarLogPublic = 1
+                    };
+                    foreach (var m in war.Clan2.Members)
+                    {
+                        aiAlliance.AddAllianceMember(new AllianceMemberEntry(m.UserId)
+                        {
+                            Role = (m.MapPosition == 0 ? 2 : 1),
+                            WarOptInStatus = 1,
+                            Order = m.MapPosition + 1
+                        });
+                    }
+                    ResourcesManager.AddAllianceInMemory(aiAlliance);
+                }
+            }
+        }
+
         public static void RecordWarHistory(ClanWar war)
         {
             if (war?.Clan1 != null)
@@ -1031,15 +1153,43 @@ namespace CSS.Logic
                 var list2 = ClanWarHistories.GetOrAdd(war.Clan2.ClanId, k => new List<ClanWar>());
                 lock (list2) { list2.Insert(0, war); }
             }
+
+            try
+            {
+                if (war?.Clan1 != null && war?.Clan2 != null)
+                {
+                    int res1 = war.Clan1.TotalStars > war.Clan2.TotalStars ? 1 : (war.Clan1.TotalStars < war.Clan2.TotalStars ? 2 : (war.Clan1.TotalDestruction > war.Clan2.TotalDestruction ? 1 : (war.Clan1.TotalDestruction < war.Clan2.TotalDestruction ? 2 : 3)));
+                    int res2 = res1 == 1 ? 2 : (res1 == 2 ? 1 : 3);
+                    int xp1 = 50 + war.Clan1.TotalStars * 5 + (res1 == 1 ? 130 : (res1 == 3 ? 65 : 0));
+                    int xp2 = 50 + war.Clan2.TotalStars * 5 + (res2 == 1 ? 130 : (res2 == 3 ? 65 : 0));
+
+                    Resources.DatabaseManager?.SaveClanWarLog(war, war.Clan1.ClanId, res1, xp1);
+                    Resources.DatabaseManager?.SaveClanWarLog(war, war.Clan2.ClanId, res2, xp2);
+                }
+            }
+            catch { }
+
             SaveState();
         }
 
         public static List<ClanWar> GetWarHistory(long clanId)
         {
-            if (ClanWarHistories.TryGetValue(clanId, out var list))
+            if (ClanWarHistories.TryGetValue(clanId, out var list) && list.Count > 0)
             {
                 lock (list) { return list.ToList(); }
             }
+
+            try
+            {
+                var dbList = Resources.DatabaseManager?.GetClanWarHistoryFromDb(clanId);
+                if (dbList != null && dbList.Count > 0)
+                {
+                    ClanWarHistories[clanId] = dbList;
+                    return dbList;
+                }
+            }
+            catch { }
+
             return new List<ClanWar>();
         }
 
@@ -1177,13 +1327,32 @@ namespace CSS.Logic
             m_vTickTimer = new System.Threading.Timer(OnTick, null, 5000, 5000);
         }
 
-        private static void OnTick(object state)
+        private static async void OnTick(object state)
         {
             try
             {
+                // 1. Tick all active wars
                 foreach (var war in Wars.Values)
                 {
                     war.Tick();
+                }
+
+                // 2. Check matchmaking search timeouts
+                DateTime now = DateTime.UtcNow;
+                foreach (var kvp in SearchingClans.ToArray())
+                {
+                    if ((now - kvp.Value.SearchStartTime).TotalSeconds >= kvp.Value.TimeoutSeconds)
+                    {
+                        if (SearchingClans.TryRemove(kvp.Key, out SearchingClanInfo info))
+                        {
+                            Alliance clan = ObjectManager.GetAlliance(info.ClanId);
+                            if (clan != null)
+                            {
+                                Logger.Say($"Matchmaking timeout reached for Clan '{clan.m_vAllianceName}'. Generating AI opponent...");
+                                await StartWar(clan, null, info.TeamSize);
+                            }
+                        }
+                    }
                 }
             }
             catch (Exception) { }
@@ -1209,14 +1378,14 @@ namespace CSS.Logic
 
         public static ClanWarState GetClanWarState(long clanId)
         {
+            if (SearchingClans.ContainsKey(clanId))
+            {
+                return ClanWarState.SEARCHING;
+            }
             var war = GetWarByClanId(clanId);
             if (war != null)
             {
                 return war.State;
-            }
-            if (SearchingClans.Contains(clanId))
-            {
-                return ClanWarState.SEARCHING;
             }
             return ClanWarState.NOT_IN_WAR;
         }

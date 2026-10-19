@@ -21,13 +21,25 @@ namespace CSS.Packets.Messages.Server
         {
             try
             {
-                if (m_vWar == null && this.Device?.Player?.Avatar != null && this.Device.Player.Avatar.AllianceId > 0)
+                long clanId = this.Device?.Player?.Avatar?.AllianceId ?? 0;
+                if (m_vWar == null && clanId > 0)
                 {
-                    m_vWar = ClanWarManager.GetWarByClanId(this.Device.Player.Avatar.AllianceId);
+                    m_vWar = ClanWarManager.GetWarByClanId(clanId);
                 }
 
-                int warState = m_vWar != null ? (int)m_vWar.State : 0;
-                long warId = m_vWar != null ? m_vWar.WarId : 0;
+                int warState = 0;
+                long warId = 0;
+
+                if (m_vWar != null)
+                {
+                    warState = (int)m_vWar.State;
+                    warId = m_vWar.WarId;
+                }
+                else if (clanId > 0 && ClanWarManager.IsClanSearching(clanId))
+                {
+                    warState = (int)ClanWarState.SEARCHING; // 1
+                    warId = 0;
+                }
 
                 this.Data.AddInt(warState);
                 this.Data.AddLong(warId);

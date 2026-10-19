@@ -69,6 +69,7 @@ namespace CSS.Packets
                 {558, typeof(AddQuicKTrainingTroopCommand)},
                 {559, typeof(TrainQuickUnitsCommand)},
                 {560, typeof(StartClanWarCommand)},
+                {561, typeof(CancelClanWarSearchCommand)},
                 {567, typeof(SetActiveVillageLayoutCommand)},
                 {568, typeof(CopyVillageLayoutCommand)},
                 {570, typeof(TogglePlayerWarStateCommand)},

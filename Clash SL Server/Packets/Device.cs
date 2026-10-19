@@ -1,4 +1,4 @@
-﻿using System.Net.Sockets;
+using System.Net.Sockets;
 using CSS.Logic;
 using CSS.Helpers;
 using System;
@@ -22,14 +22,14 @@ namespace CSS.Packets
         {
             this.Socket = so;
             this.Keys = new Crypto();
-            this.SocketHandle = so.Handle;
+            this.SocketHandle = so?.Handle ?? IntPtr.Zero;
         }
         public Device(Socket so, Token token)
         {
             this.Socket = so;
             this.Keys = new Crypto();
             this.Token = token;
-            this.SocketHandle = so.Handle;
+            this.SocketHandle = so?.Handle ?? IntPtr.Zero;
         }
 
 

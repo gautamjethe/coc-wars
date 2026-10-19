@@ -16,4 +16,5 @@ using System.Windows;
 [assembly: AssemblyFileVersion("0.7.3.5")]
 
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("test_clan_wars")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("test_clan_wars_e2e")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("test_db_save")]

@@ -29,7 +29,9 @@ namespace CSS.Packets.GameOpCommands
             if (m_vArgs.Length <= 1 || m_vArgs[1] == "help")
             {
                 SendFeedback(level, "--- CLAN WAR COMMANDS ---\n" +
-                                    "/war start [size] - Start a war (5, 10, 15, etc.)\n" +
+                                    "/war start [size] - Instantly start a war (5, 10, etc.)\n" +
+                                    "/war search [size] - Search for a war (matchmaking)\n" +
+                                    "/war cancel - Cancel active matchmaking search\n" +
                                     "/war fast - Toggle fast mode (2m prep, 5m battle)\n" +
                                     "/war skip - Skip current phase\n" +
                                     "/war end - Force-end war and distribute rewards\n" +
@@ -39,6 +41,45 @@ namespace CSS.Packets.GameOpCommands
             }
 
             string sub = m_vArgs[1].ToLower();
+
+            if (sub == "search")
+            {
+                if (alliance == null)
+                {
+                    SendFeedback(level, "You must be in a clan to search for a war.");
+                    return;
+                }
+
+                int size = 5;
+                if (m_vArgs.Length >= 3 && int.TryParse(m_vArgs[2], out int parsedSize))
+                {
+                    size = parsedSize;
+                }
+
+                await ClanWarManager.StartSearch(alliance, size, timeoutSeconds: 15);
+                SendFeedback(level, $"Searching for a {size}v{size} Clan War opponent... (Cancel anytime with /war cancel)");
+                return;
+            }
+
+            if (sub == "cancel")
+            {
+                if (alliance == null)
+                {
+                    SendFeedback(level, "You must be in a clan.");
+                    return;
+                }
+
+                if (ClanWarManager.IsClanSearching(allianceId))
+                {
+                    ClanWarManager.CancelSearch(allianceId);
+                    SendFeedback(level, "Clan War search has been cancelled.");
+                }
+                else
+                {
+                    SendFeedback(level, "Your clan is not currently searching for a war.");
+                }
+                return;
+            }
 
             if (sub == "start")
             {
