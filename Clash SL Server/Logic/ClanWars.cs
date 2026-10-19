@@ -1028,7 +1028,8 @@ namespace CSS.Logic
                 bool loadedFromDb = false;
                 try
                 {
-                    var dbWars = Resources.DatabaseManager?.GetActiveClanWars();
+                    DatabaseManager db = Resources.DatabaseManager ?? new DatabaseManager();
+                    var dbWars = db.GetActiveClanWars();
                     if (dbWars != null && dbWars.Count > 0)
                     {
                         foreach (var war in dbWars)
@@ -1040,9 +1041,13 @@ namespace CSS.Logic
                             RestoreWarMembersInMemory(war);
                         }
                         loadedFromDb = true;
+                        Logger.Say($"[ClanWars] Successfully loaded {Wars.Count} active Clan War(s) from Database.");
                     }
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    Logger.Write($"[Error] ClanWarManager.LoadState db load failed: {ex.Message}");
+                }
 
                 if (!loadedFromDb && File.Exists(WarsFilePath))
                 {
@@ -1371,8 +1376,41 @@ namespace CSS.Logic
         {
             if (ClanToWarMap.TryGetValue(clanId, out long warId))
             {
-                return GetWar(warId);
+                var war = GetWar(warId);
+                if (war != null) return war;
             }
+
+            // Fallback 1: check in-memory Wars.Values directly
+            foreach (var w in Wars.Values)
+            {
+                if ((w.Clan1 != null && w.Clan1.ClanId == clanId) || (w.Clan2 != null && w.Clan2.ClanId == clanId))
+                {
+                    ClanToWarMap[clanId] = w.WarId;
+                    return w;
+                }
+            }
+
+            // Fallback 2: query remote database directly
+            try
+            {
+                DatabaseManager db = Resources.DatabaseManager ?? new DatabaseManager();
+                var dbWar = db.GetActiveClanWarByClanId(clanId);
+                if (dbWar != null)
+                {
+                    Wars[dbWar.WarId] = dbWar;
+                    if (dbWar.Clan1 != null) ClanToWarMap[dbWar.Clan1.ClanId] = dbWar.WarId;
+                    if (dbWar.Clan2 != null) ClanToWarMap[dbWar.Clan2.ClanId] = dbWar.WarId;
+                    if (dbWar.WarId >= m_vWarSeed) m_vWarSeed = dbWar.WarId + 1;
+                    RestoreWarMembersInMemory(dbWar);
+                    Logger.Say($"[ClanWars] Loaded active Clan War {dbWar.WarId} from database on-demand for Clan {clanId}.");
+                    return dbWar;
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Write($"[Error] ClanWarManager.GetWarByClanId fallback failed: {ex.Message}");
+            }
+
             return null;
         }
 

@@ -921,6 +921,39 @@ namespace CSS.Core
             return wars;
         }
 
+        public ClanWar GetActiveClanWarByClanId(long clanId)
+        {
+            try
+            {
+                using (MySqlConnection conn = new MySqlConnection(EnsureConnectionString()))
+                {
+                    conn.Open();
+                    using (MySqlCommand cmd = new MySqlCommand("SELECT Data FROM ClanWar WHERE (Clan1Id = @clanId OR Clan2Id = @clanId) AND State != 6 ORDER BY WarId DESC LIMIT 1", conn))
+                    {
+                        cmd.Parameters.AddWithValue("@clanId", clanId);
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                string data = reader.GetString(0);
+                                if (!string.IsNullOrWhiteSpace(data))
+                                {
+                                    var w = new ClanWar();
+                                    w.LoadFromJson(JObject.Parse(data));
+                                    return w;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Error($"DatabaseManager.GetActiveClanWarByClanId failed: {ex.Message}");
+            }
+            return null;
+        }
+
         public List<ClanWar> GetClanWarHistoryFromDb(long clanId)
         {
             List<ClanWar> history = new List<ClanWar>();

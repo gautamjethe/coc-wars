@@ -245,9 +245,15 @@ namespace CSS.Packets.Messages.Client
                 Alliance alliance = ObjectManager.GetAlliance(level.Avatar.AllianceId);
                 if (alliance != null)
                 {
+                    ClanWar war = ClanWarManager.GetWarByClanId(alliance.m_vAllianceId);
                     new AllianceFullEntryMessage(this.Device, alliance).Send();
                     new AllianceStreamMessage(this.Device, alliance).Send();
                     new AllianceWarHistoryMessage(this.Device, alliance).Send();
+                    if (war != null)
+                    {
+                        new AllianceWarDataMessage(this.Device, war).Send();
+                        new AllianceWarMapDataMessage(this.Device, war).Send();
+                    }
                 }
                 else
                 {

@@ -1,4 +1,4 @@
-﻿
+
 using CSS.Core.Events;
 
 namespace CSS.Core
@@ -17,11 +17,12 @@ namespace CSS.Core
 
         internal static void Initialize()
         {
+            Resources.DatabaseManager = new DatabaseManager();
             Resources.Loader = new Loader();
             Resources.Random = new Random();
-            Resources.DatabaseManager = new DatabaseManager();
             Resources.Region = new Region();
             Resources.Gateway = new Gateway();
+            CSS.Logic.ClanWarManager.LoadState();
         }
     }
 }
