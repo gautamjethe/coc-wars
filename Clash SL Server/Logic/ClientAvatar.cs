@@ -172,6 +172,11 @@ namespace CSS.Logic
 
         public async Task<byte[]> Encode()
         {
+            return EncodeSync();
+        }
+
+        public byte[] EncodeSync()
+        {
             try
             {
                 Random rnd = new Random();
@@ -180,13 +185,24 @@ namespace CSS.Logic
                 data.AddLong(this.CurrentHomeId);
                 if (this.AllianceId != 0)
                 {
-                    data.Add(1);
-                    data.AddLong(this.AllianceId);
                     Alliance alliance = ObjectManager.GetAlliance(this.AllianceId);
-                    data.AddString(alliance.m_vAllianceName);
-                    data.AddInt(alliance.m_vAllianceBadgeData);
-                    data.AddInt(alliance.m_vAllianceMembers[this.UserId].Role);
-                    data.AddInt(alliance.m_vAllianceLevel);
+                    if (alliance != null && alliance.m_vAllianceMembers != null && alliance.m_vAllianceMembers.ContainsKey(this.UserId))
+                    {
+                        data.Add(1);
+                        data.AddLong(this.AllianceId);
+                        data.AddString(alliance.m_vAllianceName ?? "Clan");
+                        data.AddInt(alliance.m_vAllianceBadgeData);
+                        data.AddInt(alliance.m_vAllianceMembers[this.UserId].Role);
+                        data.AddInt(alliance.m_vAllianceLevel);
+                    }
+                    else
+                    {
+                        data.Add(0);
+                    }
+                }
+                else
+                {
+                    data.Add(0);
                 }
                 data.Add(0);
 
@@ -341,7 +357,12 @@ namespace CSS.Logic
                 }
                 data.AddDataSlots(new List<DataSlot>());
                 return data.ToArray();
-            } catch (Exception) { return null; }
+            }
+            catch (Exception ex)
+            {
+                Logger.Write($"[Error] ClientAvatar.EncodeSync failed: {ex.Message}");
+                return new byte[0];
+            }
         }
 
         public async Task<AllianceMemberEntry> GetAllianceMemberEntry()

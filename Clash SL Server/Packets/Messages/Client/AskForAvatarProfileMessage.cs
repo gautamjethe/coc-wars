@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using CSS.Core;
 using CSS.Core.Network;
@@ -30,15 +30,38 @@ namespace CSS.Packets.Messages.Client
         {
             try
             {
-                Level targetLevel = await ResourcesManager.GetPlayer(m_vAvatarId);
+                long targetId = this.m_vAvatarId;
+                if (targetId == 0 && this.Device?.Player?.Avatar != null)
+                {
+                    targetId = this.Device.Player.Avatar.UserId;
+                }
+
+                Logger.Say($"[AskForAvatarProfile] Handling profile request for targetId={targetId} (requester={this.Device?.Player?.Avatar?.UserId})");
+
+                Level targetLevel = null;
+                if (this.Device?.Player?.Avatar != null && this.Device.Player.Avatar.UserId == targetId)
+                {
+                    targetLevel = this.Device.Player;
+                }
+                else
+                {
+                    targetLevel = await ResourcesManager.GetPlayer(targetId);
+                }
+
                 if (targetLevel != null)
                 {
                     targetLevel.Tick();
                     new AvatarProfileMessage(this.Device) { Level = targetLevel }.Send();
+                    Logger.Say($"[AskForAvatarProfile] AvatarProfileMessage (24334) sent for targetId={targetId}");
+                }
+                else
+                {
+                    Logger.Write($"[Error] AskForAvatarProfile: Target player {targetId} could not be found!");
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Logger.Write($"[Error] AskForAvatarProfileMessage process error: {ex.Message}");
             }
         }
     }

@@ -1067,20 +1067,36 @@ namespace CSS.Core
                                 DateTime now = DatabaseManager.Now;
 
                                 // Check rollover
-                                if (now >= info.EndTime && info.DurationSeconds > 0)
+                                if (now >= info.EndTime)
                                 {
-                                    int elapsed = (int)(now - info.EndTime).TotalSeconds;
-                                    int cycles = 1 + (elapsed / info.DurationSeconds);
-                                    info.SeasonId += cycles;
-                                    info.StartTime = info.EndTime.AddSeconds((cycles - 1) * info.DurationSeconds);
-                                    info.EndTime = info.StartTime.AddSeconds(info.DurationSeconds);
+                                    if (seasonType == "PlayerSeason")
+                                    {
+                                        while (now >= info.EndTime)
+                                        {
+                                            info.SeasonId++;
+                                            info.StartTime = info.EndTime;
+                                            info.EndTime = info.StartTime.AddMonths(1);
+                                        }
+                                        info.DurationSeconds = (int)(info.EndTime - info.StartTime).TotalSeconds;
+                                    }
+                                    else
+                                    {
+                                        int duration = info.DurationSeconds > 0 ? info.DurationSeconds : defaultDurationSeconds;
+                                        int elapsed = (int)(now - info.EndTime).TotalSeconds;
+                                        int cycles = 1 + (elapsed / duration);
+                                        info.SeasonId += cycles;
+                                        info.StartTime = info.EndTime.AddSeconds((cycles - 1) * duration);
+                                        info.EndTime = info.StartTime.AddSeconds(duration);
+                                        info.DurationSeconds = duration;
+                                    }
 
                                     using (MySqlCommand updateCmd = new MySqlCommand(
-                                        "UPDATE LeaderboardSeason SET SeasonId = @sid, StartTime = @st, EndTime = @et, LastUpdateTime = @lut WHERE SeasonType = @type", conn))
+                                        "UPDATE LeaderboardSeason SET SeasonId = @sid, StartTime = @st, EndTime = @et, DurationSeconds = @dur, LastUpdateTime = @lut WHERE SeasonType = @type", conn))
                                     {
                                         updateCmd.Parameters.AddWithValue("@sid", info.SeasonId);
                                         updateCmd.Parameters.AddWithValue("@st", info.StartTime.ToString("yyyy-MM-dd HH:mm:ss"));
                                         updateCmd.Parameters.AddWithValue("@et", info.EndTime.ToString("yyyy-MM-dd HH:mm:ss"));
+                                        updateCmd.Parameters.AddWithValue("@dur", info.DurationSeconds);
                                         updateCmd.Parameters.AddWithValue("@lut", now.ToString("yyyy-MM-dd HH:mm:ss"));
                                         updateCmd.Parameters.AddWithValue("@type", seasonType);
                                         updateCmd.ExecuteNonQuery();
