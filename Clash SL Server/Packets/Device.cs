@@ -7,6 +7,8 @@ using CSS.Core;
 using CSS.Core.Crypto;
 using CSS.Core.Network;
 using CSS.Helpers.Binary;
+using System.Linq;
+using CSS.Utilities.Sodium;
 using CSS.Logic.Enums;
 
 namespace CSS.Packets
@@ -103,7 +105,18 @@ namespace CSS.Packets
                         else
                         {
                             Logger.Write($"Message { _Header[0] } is unhandled");
-                            this.Keys.SNonce.Increment();
+                            byte[] unhandledPayload = Reader.ReadBytes(_Header[1]);
+                            if (this.PlayerState >= State.LOGGED && unhandledPayload != null && unhandledPayload.Length > 0)
+                            {
+                                try
+                                {
+                                    this.Keys.SNonce.Increment();
+                                    Sodium.Decrypt(new byte[16].Concat(unhandledPayload).ToArray(), this.Keys.SNonce, this.Keys.PublicKey);
+                                }
+                                catch (Exception)
+                                {
+                                }
+                            }
                         }
 
                         this.Token.Packet.RemoveRange(0, _Header[1] + 7);

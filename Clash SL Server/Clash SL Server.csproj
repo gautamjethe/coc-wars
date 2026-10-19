@@ -1246,6 +1246,7 @@
     <Compile Include="Packets\Messages\Client\ReportPlayerMessage.cs" />
     <Compile Include="Packets\Messages\Client\Authentication\SessionRequest.cs" />
     <Compile Include="Packets\Messages\Client\KeepAliveMessage.cs" />
+    <Compile Include="Packets\Messages\Client\PerformanceMetricMessage.cs" />
     <Compile Include="Packets\Messages\Client\AttackNpcMessage.cs" />
     <Compile Include="Packets\Messages\Client\GetDeviceTokenMessage.cs" />
     <Compile Include="Packets\Messages\Client\TopGlobalAlliancesMessage.cs" />

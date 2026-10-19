@@ -23,6 +23,7 @@ namespace CSS.Packets
                 {10117, typeof(ReportPlayerMessage)},
                 {10118, typeof(AccountSwitchMessage)},
                 {10113, typeof(GetDeviceTokenMessage)},
+                {10160, typeof(PerformanceMetricMessage)},
                 {10212, typeof(ChangeAvatarNameMessage)},
                 {10502, typeof(AddClashFriendMessage)},
                 {10905, typeof(NewsSeenMessage)},

@@ -54,10 +54,6 @@ namespace CSS.Packets.Messages.Client
                         new AllianceWarMapDataMessage(this.Device, war).Send();
                     }
                 }
-                else if (this.Device.PlayerState == Logic.Enums.State.LOGGED)
-                {
-                    ResourcesManager.DisconnectClient(Device);
-                }
                 else
                 {
                     this.Device.PlayerState = Logic.Enums.State.LOGGED;
@@ -66,6 +62,12 @@ namespace CSS.Packets.Messages.Client
                     new OwnHomeDataMessage(Device, this.Device.Player).Send();
                     if (alliance != null)
                     {
+                        ClanWar war = ClanWarManager.GetWarByClanId(alliance.m_vAllianceId);
+                        if (war != null)
+                        {
+                            alliance.m_vWarState = (int)war.State;
+                        }
+                        new AllianceFullEntryMessage(Device, alliance).Send();
                         new AllianceStreamMessage(Device, alliance).Send();
                     }
                 }

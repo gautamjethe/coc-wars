@@ -613,9 +613,9 @@ namespace CSS.Logic
                             if (player?.Client != null)
                             {
                                 new AllianceFullEntryMessage(player.Client, a).Send();
-                                new AllianceWarDataMessage(player.Client, this).Send();
                                 if (player.Client.PlayerState == Enums.State.WAR_EMODE)
                                 {
+                                    new AllianceWarDataMessage(player.Client, this).Send();
                                     new AllianceWarMapDataMessage(player.Client, this).Send();
                                 }
                             }
