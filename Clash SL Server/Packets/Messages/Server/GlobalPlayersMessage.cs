@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using CSS.Core;
-using CSS.Helpers;
 using CSS.Helpers.List;
 using CSS.Logic;
 
@@ -19,59 +17,77 @@ namespace CSS.Packets.Messages.Server
 
         internal override async void Encode()
         {
-            List<byte> packet1 = new List<byte>();
-            int i = 0;
-
-            foreach (var player in ResourcesManager.m_vInMemoryLevels.Values.ToList().OrderByDescending(t => t.Avatar.GetScore()))
+            try
             {
-                try
+                var topPlayers = DatabaseManager.GetTopPlayers(100);
+
+                List<byte> list1Data = new List<byte>();
+                int rank = 1;
+
+                foreach (var pl in topPlayers)
                 {
-                    if (player.Avatar.m_vAvatarLevel >= 70)
+                    if (pl == null) continue;
+
+                    list1Data.AddLong(pl.UserId);
+                    list1Data.AddString(pl.AvatarName ?? "Player");
+                    list1Data.AddInt(rank);
+                    list1Data.AddInt(pl.GetScore());
+                    list1Data.AddInt(rank);
+                    list1Data.AddInt(pl.m_vAvatarLevel);
+                    list1Data.AddInt(100);
+                    list1Data.AddInt(rank - 1);
+                    list1Data.AddInt(100);
+                    list1Data.AddInt(1);
+                    list1Data.AddInt(pl.m_vLeagueId);
+                    list1Data.AddString(string.IsNullOrEmpty(pl.Region) ? "EN" : pl.Region.ToUpper());
+                    list1Data.AddLong(pl.UserId);
+                    list1Data.AddInt(1);
+                    list1Data.AddInt(1);
+
+                    if (pl.AllianceId > 0)
                     {
-                        var pl = player.Avatar;
-                        if (i >= 100)
-                            break;
-                        packet1.AddLong(pl.UserId);
-                        packet1.AddString(pl.AvatarName);
-                        packet1.AddInt(i + 1);
-                        packet1.AddInt(pl.GetScore());
-                        packet1.AddInt(i + 1);
-                        packet1.AddInt(pl.m_vAvatarLevel);
-                        packet1.AddInt(100);
-                        packet1.AddInt(i);
-                        packet1.AddInt(100);
-                        packet1.AddInt(1);
-                        packet1.AddInt(pl.m_vLeagueId);
-                        packet1.AddString(pl.Region.ToUpper());
-                        packet1.AddLong(pl.UserId);
-                        packet1.AddInt(1);
-                        packet1.AddInt(1);
-                        if (pl.AllianceId > 0)
+                        Alliance clan = ObjectManager.GetAlliance(pl.AllianceId);
+                        if (clan != null)
                         {
-                            packet1.Add(1); // 1 = Have an alliance | 0 = No alliance
-                            packet1.AddLong(pl.AllianceId);
-                            Alliance _Alliance = ObjectManager.GetAlliance(pl.AllianceId);
-                            packet1.AddString(_Alliance.m_vAllianceName);
-                            packet1.AddInt(_Alliance.m_vAllianceBadgeData);
+                            list1Data.Add((byte)1);
+                            list1Data.AddLong(pl.AllianceId);
+                            list1Data.AddString(clan.m_vAllianceName ?? "Clan");
+                            list1Data.AddInt(clan.m_vAllianceBadgeData);
                         }
                         else
-                            packet1.Add(0);
-                        i++;
+                        {
+                            list1Data.Add((byte)0);
+                        }
                     }
+                    else
+                    {
+                        list1Data.Add((byte)0);
+                    }
+
+                    rank++;
                 }
-                catch (Exception) { }
+
+                // List 1: Top Players
+                this.Data.AddInt(rank - 1);
+                this.Data.AddRange(list1Data);
+
+                // List 2: Previous Season (0 items to prevent binary format mismatch crash)
+                this.Data.AddInt(0);
+
+                // Season timer & dates (from database)
+                DatabaseManager db = Resources.DatabaseManager ?? new DatabaseManager();
+                var season = db.GetOrCreateLeaderboardSeason("PlayerSeason", 2592000); // 30-day season
+
+                this.Data.AddInt(season.RemainingSeconds);
+                this.Data.AddInt(season.EndTime.Year);
+                this.Data.AddInt(season.EndTime.Month);
+                this.Data.AddInt(season.EndTime.AddMonths(-1).Year);
+                this.Data.AddInt(season.EndTime.AddMonths(-1).Month);
             }
-
-            this.Data.AddInt(i);
-            this.Data.AddRange(packet1);
-            this.Data.AddInt(i);
-            this.Data.AddRange(packet1);
-
-            this.Data.AddInt((int) TimeSpan.FromDays(7).TotalSeconds);
-            this.Data.AddInt(DateTime.Now.Year);
-            this.Data.AddInt(DateTime.Now.Month);
-            this.Data.AddInt(DateTime.Now.Year);
-            this.Data.AddInt(DateTime.Now.Month - 1);
+            catch (Exception ex)
+            {
+                Logger.Write($"[Error] GlobalPlayersMessage encode error: {ex.Message}");
+            }
         }
     }
 }

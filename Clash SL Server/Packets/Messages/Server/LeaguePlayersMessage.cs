@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using CSS.Core;
 using CSS.Helpers.List;
@@ -16,48 +17,75 @@ namespace CSS.Packets.Messages.Server
 
         internal override async void Encode()
         {
-            List<byte> packet1 = new List<byte>();
-
-            int i = 1;
-            foreach (Level player in  ResourcesManager.m_vOnlinePlayers.Where(t => t.Avatar.m_vLeagueId == this.Device.Player.Avatar.m_vLeagueId) .OrderByDescending(t => t.Avatar.GetScore()))
+            try
             {
-                if (i >= 51)
-                    break;
+                DatabaseManager db = Resources.DatabaseManager ?? new DatabaseManager();
+                var season = db.GetOrCreateLeaderboardSeason("PlayerSeason", 2592000);
 
-                ClientAvatar pl = player.Avatar;
-                if (pl.AvatarName != null)
+                List<byte> packet1 = new List<byte>();
+                int i = 1;
+
+                int leagueId = this.Device?.Player?.Avatar?.m_vLeagueId ?? 0;
+                var candidateLevels = ResourcesManager.m_vOnlinePlayers
+                    .Concat(ResourcesManager.m_vInMemoryLevels.Values)
+                    .Where(t => t?.Avatar != null && t.Avatar.m_vLeagueId == leagueId)
+                    .GroupBy(t => t.Avatar.UserId)
+                    .Select(g => g.First())
+                    .OrderByDescending(t => t.Avatar.GetScore());
+
+                foreach (Level player in candidateLevels)
                 {
-                    packet1.AddLong(pl.UserId);
-                    packet1.AddString(pl.AvatarName);
-                    packet1.AddInt(i);
-                    packet1.AddInt(pl.GetScore());
-                    packet1.AddInt(i);
-                    packet1.AddInt(pl.m_vAvatarLevel);
-                    packet1.AddInt(200);
-                    packet1.AddInt(i);
-                    packet1.AddInt(100);
-                    packet1.AddInt(1);
-                    packet1.AddLong(pl.AllianceId);
-                    packet1.AddInt(1);
-                    packet1.AddInt(1);
-                    if (pl.AllianceId > 0)
-                    {
-                        packet1.Add(1);
-                        packet1.AddLong(pl.AllianceId);
-                        Alliance _Alliance = ObjectManager.GetAlliance(pl.AllianceId);
-                        packet1.AddString(_Alliance.m_vAllianceName);
-                        packet1.AddInt(_Alliance.m_vAllianceBadgeData);
-                        packet1.AddLong(i);
-                    }
-                    else
-                        packet1.Add(0);
-                    i++;
-                }
-            }
-            this.Data.AddInt(9000); //Season End
-            this.Data.AddInt(i - 1);
-            this.Data.AddRange(packet1);
+                    if (i >= 51)
+                        break;
 
+                    ClientAvatar pl = player.Avatar;
+                    if (pl != null && pl.AvatarName != null)
+                    {
+                        packet1.AddLong(pl.UserId);
+                        packet1.AddString(pl.AvatarName);
+                        packet1.AddInt(i);
+                        packet1.AddInt(pl.GetScore());
+                        packet1.AddInt(i);
+                        packet1.AddInt(pl.m_vAvatarLevel);
+                        packet1.AddInt(200);
+                        packet1.AddInt(i);
+                        packet1.AddInt(100);
+                        packet1.AddInt(1);
+                        packet1.AddLong(pl.AllianceId);
+                        packet1.AddInt(1);
+                        packet1.AddInt(1);
+                        if (pl.AllianceId > 0)
+                        {
+                            Alliance clan = ObjectManager.GetAlliance(pl.AllianceId);
+                            if (clan != null)
+                            {
+                                packet1.Add((byte)1);
+                                packet1.AddLong(pl.AllianceId);
+                                packet1.AddString(clan.m_vAllianceName ?? "Clan");
+                                packet1.AddInt(clan.m_vAllianceBadgeData);
+                                packet1.AddLong(i);
+                            }
+                            else
+                            {
+                                packet1.Add((byte)0);
+                            }
+                        }
+                        else
+                        {
+                            packet1.Add((byte)0);
+                        }
+                        i++;
+                    }
+                }
+
+                this.Data.AddInt(season.RemainingSeconds); // Season End (synced with database)
+                this.Data.AddInt(i - 1);
+                this.Data.AddRange(packet1);
+            }
+            catch (Exception ex)
+            {
+                Logger.Write($"[Error] LeaguePlayersMessage encode error: {ex.Message}");
+            }
         }
     }
 }

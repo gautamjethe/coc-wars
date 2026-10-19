@@ -17,26 +17,37 @@ namespace CSS.Packets.Messages.Server
 
         internal override void Encode()
         {
-            List<byte> packet1 = new List<byte>();
-            int i = 0;
-
-            foreach(Alliance alliance in ObjectManager.GetInMemoryAlliances().OrderByDescending(t => t.m_vScore))
+            try
             {
-                if (i >= 100)
-                    break;
-                packet1.AddLong(alliance.m_vAllianceId);
-                packet1.AddString(alliance.m_vAllianceName);
-                packet1.AddInt(i + 1);
-                packet1.AddInt(alliance.m_vScore);
-                packet1.AddInt(i + 1);
-                packet1.AddInt(alliance.m_vAllianceBadgeData);
-                packet1.AddInt(alliance.GetAllianceMembers().Count);
-                packet1.AddInt(0);
-                packet1.AddInt(alliance.m_vAllianceLevel);
-                i++;
+                var topClans = DatabaseManager.GetTopClans(100);
+
+                List<byte> clanData = new List<byte>();
+                int rank = 1;
+
+                foreach (Alliance alliance in topClans)
+                {
+                    if (alliance == null) continue;
+
+                    clanData.AddLong(alliance.m_vAllianceId);
+                    clanData.AddString(alliance.m_vAllianceName ?? "Clan");
+                    clanData.AddInt(rank);
+                    clanData.AddInt(alliance.m_vScore);
+                    clanData.AddInt(rank);
+                    clanData.AddInt(alliance.m_vAllianceBadgeData);
+                    clanData.AddInt(alliance.GetAllianceMembers().Count);
+                    clanData.AddInt(0);
+                    clanData.AddInt(alliance.m_vAllianceLevel);
+
+                    rank++;
+                }
+
+                this.Data.AddInt(rank - 1);
+                this.Data.AddRange(clanData);
             }
-            this.Data.AddInt(i);       
-            this.Data.AddRange(packet1.ToArray());
+            catch (Exception ex)
+            {
+                Logger.Write($"[Error] LocalAlliancesMessage encode error: {ex.Message}");
+            }
         }
     }
 }

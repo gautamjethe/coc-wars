@@ -17,48 +17,64 @@ namespace CSS.Packets.Messages.Server
 
         internal override async void Encode()
         {
-            List<byte> data = new List<byte>();
-            var i = 0;
-
-            foreach (Level player in ResourcesManager.m_vInMemoryLevels.Values.ToList().OrderByDescending(t => t.Avatar.GetScore()))
+            try
             {
-                try
+                string playerRegion = string.IsNullOrEmpty(this.Device?.Player?.Avatar?.Region) ? "EN" : this.Device.Player.Avatar.Region.ToUpper();
+                var topPlayers = DatabaseManager.GetTopPlayers(100);
+
+                List<byte> list1Data = new List<byte>();
+                int rank = 1;
+
+                foreach (var pl in topPlayers)
                 {
-                    ClientAvatar pl = player.Avatar;
-                    if (i >= 100)
-                        break;
-                    data.AddLong(pl.UserId);
-                    data.AddString(pl.AvatarName);
-                    data.AddInt(i + 1);
-                    data.AddInt(pl.GetScore());
-                    data.AddInt(i + 1);
-                    data.AddInt(pl.m_vAvatarLevel);
-                    data.AddInt(100);
-                    data.AddInt(1);
-                    data.AddInt(100);
-                    data.AddInt(1);
-                    data.AddInt(pl.m_vLeagueId);
-                    data.AddString(pl.Region.ToUpper());
-                    data.AddLong(pl.AllianceId);
-                    data.AddInt(1);
-                    data.AddInt(1);
+                    if (pl == null) continue;
+
+                    list1Data.AddLong(pl.UserId);
+                    list1Data.AddString(pl.AvatarName ?? "Player");
+                    list1Data.AddInt(rank);
+                    list1Data.AddInt(pl.GetScore());
+                    list1Data.AddInt(rank);
+                    list1Data.AddInt(pl.m_vAvatarLevel);
+                    list1Data.AddInt(100);
+                    list1Data.AddInt(rank - 1);
+                    list1Data.AddInt(100);
+                    list1Data.AddInt(1);
+                    list1Data.AddInt(pl.m_vLeagueId);
+                    list1Data.AddString(string.IsNullOrEmpty(pl.Region) ? playerRegion : pl.Region.ToUpper());
+                    list1Data.AddLong(pl.UserId);
+                    list1Data.AddInt(1);
+                    list1Data.AddInt(1);
+
                     if (pl.AllianceId > 0)
                     {
-                        data.Add(1); // 1 = Have an alliance | 0 = No alliance
-                        data.AddLong(pl.AllianceId);
-                        Alliance _Alliance = ObjectManager.GetAlliance(pl.AllianceId);
-                        data.AddString(_Alliance.m_vAllianceName);
-                        data.AddInt(_Alliance.m_vAllianceBadgeData);
+                        Alliance clan = ObjectManager.GetAlliance(pl.AllianceId);
+                        if (clan != null)
+                        {
+                            list1Data.Add((byte)1);
+                            list1Data.AddLong(pl.AllianceId);
+                            list1Data.AddString(clan.m_vAllianceName ?? "Clan");
+                            list1Data.AddInt(clan.m_vAllianceBadgeData);
+                        }
+                        else
+                        {
+                            list1Data.Add((byte)0);
+                        }
                     }
                     else
-                        data.Add(0);
-                    i++;
-                }
-                catch (Exception) { }
-            }
+                    {
+                        list1Data.Add((byte)0);
+                    }
 
-            this.Data.AddInt(i);
-            this.Data.AddRange(data.ToArray());
+                    rank++;
+                }
+
+                this.Data.AddInt(rank - 1);
+                this.Data.AddRange(list1Data);
+            }
+            catch (Exception ex)
+            {
+                Logger.Write($"[Error] LocalPlayersMessage encode error: {ex.Message}");
+            }
         }
     }
 }

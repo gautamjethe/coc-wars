@@ -10,6 +10,7 @@ using static CSS.Core.Logger;
 using System.Threading.Tasks;
 using CSS.Logic.Enums;
 using CSS.Helpers;
+using System.Collections.Concurrent;
 using Newtonsoft.Json.Linq;
 
 namespace CSS.Core
@@ -654,6 +655,16 @@ namespace CSS.Core
                           `DarkElixirGain` int(11) NOT NULL DEFAULT '0',
                           PRIMARY KEY (`WarId`,`UserId`),
                           KEY `idx_clan` (`ClanId`)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+                        CREATE TABLE IF NOT EXISTS `LeaderboardSeason` (
+                          `SeasonType` varchar(32) NOT NULL,
+                          `SeasonId` int(11) NOT NULL DEFAULT '1',
+                          `StartTime` datetime NOT NULL,
+                          `EndTime` datetime NOT NULL,
+                          `DurationSeconds` int(11) NOT NULL,
+                          `LastUpdateTime` datetime DEFAULT NULL,
+                          PRIMARY KEY (`SeasonType`)
                         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
 
                     using (MySqlCommand cmd = new MySqlCommand(sql, conn))
@@ -986,6 +997,227 @@ namespace CSS.Core
                 Error($"DatabaseManager.GetClanWarHistoryFromDb failed for ClanId {clanId}: {ex.Message}");
             }
             return history;
+        }
+
+        public struct SeasonInfo
+        {
+            public string SeasonType;
+            public int SeasonId;
+            public DateTime StartTime;
+            public DateTime EndTime;
+            public int DurationSeconds;
+            public int RemainingSeconds => Math.Max(0, (int)(EndTime - DateTime.UtcNow).TotalSeconds);
+        }
+
+        private static ConcurrentDictionary<string, SeasonInfo> s_seasonCache = new ConcurrentDictionary<string, SeasonInfo>();
+
+        public SeasonInfo GetOrCreateLeaderboardSeason(string seasonType, int defaultDurationSeconds)
+        {
+            try
+            {
+                using (MySqlConnection conn = new MySqlConnection(EnsureConnectionString()))
+                {
+                    conn.Open();
+                    using (MySqlCommand cmd = new MySqlCommand("SELECT SeasonType, SeasonId, StartTime, EndTime, DurationSeconds FROM LeaderboardSeason WHERE SeasonType = @st LIMIT 1", conn))
+                    {
+                        cmd.Parameters.AddWithValue("@st", seasonType);
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                var info = new SeasonInfo
+                                {
+                                    SeasonType = reader.GetString(0),
+                                    SeasonId = reader.GetInt32(1),
+                                    StartTime = reader.GetDateTime(2),
+                                    EndTime = reader.GetDateTime(3),
+                                    DurationSeconds = reader.GetInt32(4)
+                                };
+
+                                reader.Close();
+
+                                // Check rollover
+                                if (DateTime.UtcNow >= info.EndTime && info.DurationSeconds > 0)
+                                {
+                                    int elapsed = (int)(DateTime.UtcNow - info.EndTime).TotalSeconds;
+                                    int cycles = 1 + (elapsed / info.DurationSeconds);
+                                    info.SeasonId += cycles;
+                                    info.StartTime = info.EndTime.AddSeconds((cycles - 1) * info.DurationSeconds);
+                                    info.EndTime = info.StartTime.AddSeconds(info.DurationSeconds);
+
+                                    using (MySqlCommand updateCmd = new MySqlCommand(
+                                        "UPDATE LeaderboardSeason SET SeasonId = @sid, StartTime = @st, EndTime = @et, LastUpdateTime = NOW() WHERE SeasonType = @type", conn))
+                                    {
+                                        updateCmd.Parameters.AddWithValue("@sid", info.SeasonId);
+                                        updateCmd.Parameters.AddWithValue("@st", info.StartTime);
+                                        updateCmd.Parameters.AddWithValue("@et", info.EndTime);
+                                        updateCmd.Parameters.AddWithValue("@type", seasonType);
+                                        updateCmd.ExecuteNonQuery();
+                                    }
+                                }
+
+                                s_seasonCache[seasonType] = info;
+                                return info;
+                            }
+                        }
+                    }
+
+                    // Create row if missing
+                    DateTime now = DateTime.UtcNow;
+                    DateTime end = now.AddSeconds(defaultDurationSeconds);
+                    var newInfo = new SeasonInfo
+                    {
+                        SeasonType = seasonType,
+                        SeasonId = 1,
+                        StartTime = now,
+                        EndTime = end,
+                        DurationSeconds = defaultDurationSeconds
+                    };
+
+                    using (MySqlCommand insertCmd = new MySqlCommand(
+                        "INSERT INTO LeaderboardSeason (SeasonType, SeasonId, StartTime, EndTime, DurationSeconds, LastUpdateTime) " +
+                        "VALUES (@type, 1, @st, @et, @dur, NOW()) " +
+                        "ON DUPLICATE KEY UPDATE DurationSeconds=@dur, LastUpdateTime=NOW();", conn))
+                    {
+                        insertCmd.Parameters.AddWithValue("@type", seasonType);
+                        insertCmd.Parameters.AddWithValue("@st", now);
+                        insertCmd.Parameters.AddWithValue("@et", end);
+                        insertCmd.Parameters.AddWithValue("@dur", defaultDurationSeconds);
+                        insertCmd.ExecuteNonQuery();
+                    }
+
+                    s_seasonCache[seasonType] = newInfo;
+                    return newInfo;
+                }
+            }
+            catch (Exception ex)
+            {
+                Error($"DatabaseManager.GetOrCreateLeaderboardSeason error for {seasonType}: {ex.Message}");
+            }
+
+            // Fallback in-memory cache if DB is unreachable
+            return s_seasonCache.GetOrAdd(seasonType, st => new SeasonInfo
+            {
+                SeasonType = st,
+                SeasonId = 1,
+                StartTime = DateTime.UtcNow,
+                EndTime = DateTime.UtcNow.AddSeconds(defaultDurationSeconds),
+                DurationSeconds = defaultDurationSeconds
+            });
+        }
+
+        public static List<ClientAvatar> GetTopPlayers(int limit = 100)
+        {
+            var result = new List<ClientAvatar>();
+            var seen = new HashSet<long>();
+
+            // 1. In-memory players
+            try
+            {
+                foreach (var lvl in ResourcesManager.m_vInMemoryLevels.Values.ToList())
+                {
+                    if (lvl?.Avatar != null && !seen.Contains(lvl.Avatar.UserId))
+                    {
+                        seen.Add(lvl.Avatar.UserId);
+                        result.Add(lvl.Avatar);
+                    }
+                }
+            }
+            catch { }
+
+            // 2. Query Database if we have fewer than limit
+            try
+            {
+                DatabaseManager db = Resources.DatabaseManager ?? new DatabaseManager();
+                using (MySqlConnection conn = new MySqlConnection(db.EnsureConnectionString()))
+                {
+                    conn.Open();
+                    using (MySqlCommand cmd = new MySqlCommand("SELECT Avatar FROM Player ORDER BY LastUpdateTime DESC LIMIT 150", conn))
+                    {
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                try
+                                {
+                                    string avatarJson = reader.GetString(0);
+                                    if (!string.IsNullOrWhiteSpace(avatarJson))
+                                    {
+                                        var av = new ClientAvatar();
+                                        av.LoadFromJSON(avatarJson);
+                                        if (av.UserId > 0 && !seen.Contains(av.UserId))
+                                        {
+                                            seen.Add(av.UserId);
+                                            result.Add(av);
+                                        }
+                                    }
+                                }
+                                catch { }
+                            }
+                        }
+                    }
+                }
+            }
+            catch { }
+
+            return result.OrderByDescending(p => p.GetScore()).Take(limit).ToList();
+        }
+
+        public static List<Alliance> GetTopClans(int limit = 100)
+        {
+            var result = new List<Alliance>();
+            var seen = new HashSet<long>();
+
+            // 1. In-memory clans
+            try
+            {
+                foreach (var a in ObjectManager.GetInMemoryAlliances())
+                {
+                    if (a != null && !seen.Contains(a.m_vAllianceId))
+                    {
+                        seen.Add(a.m_vAllianceId);
+                        result.Add(a);
+                    }
+                }
+            }
+            catch { }
+
+            // 2. Query Database for additional clans
+            try
+            {
+                DatabaseManager db = Resources.DatabaseManager ?? new DatabaseManager();
+                using (MySqlConnection conn = new MySqlConnection(db.EnsureConnectionString()))
+                {
+                    conn.Open();
+                    using (MySqlCommand cmd = new MySqlCommand("SELECT Data FROM Clan LIMIT 150", conn))
+                    {
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                try
+                                {
+                                    string data = reader.GetString(0);
+                                    if (!string.IsNullOrWhiteSpace(data))
+                                    {
+                                        var a = new Alliance();
+                                        a.LoadFromJSON(data);
+                                        if (a.m_vAllianceId > 0 && !seen.Contains(a.m_vAllianceId))
+                                        {
+                                            seen.Add(a.m_vAllianceId);
+                                            result.Add(a);
+                                        }
+                                    }
+                                }
+                                catch { }
+                            }
+                        }
+                    }
+                }
+            }
+            catch { }
+
+            return result.OrderByDescending(c => c.m_vScore).Take(limit).ToList();
         }
     }
 }
