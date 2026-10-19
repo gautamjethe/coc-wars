@@ -43,8 +43,9 @@ namespace CSS.Packets.Messages.Server
                 this.Data.Add((byte)0);          // 1-byte boolean (optional long flag)
                 this.Data.AddRange(m_vAlliance.EncodeFullEntry());
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Core.Logger.Write($"[Error] AllianceFullEntryMessage encode error: {ex.Message}");
             }
         }
     }

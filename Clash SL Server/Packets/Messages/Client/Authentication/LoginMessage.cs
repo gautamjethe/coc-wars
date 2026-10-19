@@ -248,10 +248,8 @@ namespace CSS.Packets.Messages.Client
                     ClanWar war = ClanWarManager.GetWarByClanId(alliance.m_vAllianceId);
                     new AllianceFullEntryMessage(this.Device, alliance).Send();
                     new AllianceStreamMessage(this.Device, alliance).Send();
-                    new AllianceWarHistoryMessage(this.Device, alliance).Send();
-                    if (war != null)
+                    if (war != null && war.State != ClanWarState.NOT_IN_WAR)
                     {
-                        new AllianceWarDataMessage(this.Device, war).Send();
                         new AllianceWarMapDataMessage(this.Device, war).Send();
                     }
                 }

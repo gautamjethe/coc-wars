@@ -51,10 +51,12 @@ namespace CSS.Packets.Messages.Client
 
                 if (war != null)
                 {
+                    Logger.Say($"[ClanWars] Packet 14334 (AskForAllianceWarMapData) handled for clan={this.Device.Player.Avatar.AllianceId}, warId={war.WarId}");
                     new AllianceWarMapDataMessage(this.Device, war).Send();
                 }
                 else
                 {
+                    Logger.Say($"[ClanWars] Packet 14334 (AskForAllianceWarMapData) handled: no active war found for clan={this.Device.Player.Avatar.AllianceId}");
                     new AllianceWarMapDataMessage(this.Device).Send();
                 }
             }
