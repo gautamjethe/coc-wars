@@ -21,28 +21,160 @@ namespace CSS.Packets.Messages.Server
         {
             try
             {
-                long clanId = this.Device?.Player?.Avatar?.AllianceId ?? 0;
-                if (m_vWar == null && clanId > 0)
+                long playerClanId = this.Device?.Player?.Avatar?.AllianceId ?? 0;
+                if (m_vWar == null && playerClanId > 0)
                 {
-                    m_vWar = ClanWarManager.GetWarByClanId(clanId);
+                    m_vWar = ClanWarManager.GetWarByClanId(playerClanId);
                 }
-
-                int warState = 0;
-                long warId = 0;
 
                 if (m_vWar != null)
                 {
-                    warState = (int)m_vWar.State;
-                    warId = m_vWar.WarId;
-                }
-                else if (clanId > 0 && ClanWarManager.IsClanSearching(clanId))
-                {
-                    warState = (int)ClanWarState.SEARCHING; // 1
-                    warId = 0;
-                }
+                    WarClan c1 = m_vWar.Clan1;
+                    WarClan c2 = m_vWar.Clan2;
+                    if (playerClanId > 0 && m_vWar.Clan2 != null && m_vWar.Clan2.ClanId == playerClanId)
+                    {
+                        c1 = m_vWar.Clan2;
+                        c2 = m_vWar.Clan1;
+                    }
 
-                this.Data.AddInt(warState);
-                this.Data.AddLong(warId);
+                    this.Data.AddInt((int)m_vWar.State);
+                    this.Data.AddInt(m_vWar.RemainingTimeSeconds);
+
+                    // Team 1
+                    this.Data.AddLong(c1?.ClanId ?? 0);
+                    this.Data.AddString(c1?.ClanName ?? "Clan");
+                    this.Data.AddInt(c1?.ClanBadge ?? 0);
+                    this.Data.AddInt(c1?.ClanLevel ?? 1);
+                    this.Data.Add((byte)0);
+                    this.Data.AddRange(new List<byte> { 1, 2, 3, 4 });
+                    this.Data.AddInt(c1?.TotalStars ?? 0);
+                    this.Data.AddInt((int)(c1?.TotalDestruction ?? 0));
+                    this.Data.AddInt(0);
+                    this.Data.AddInt(c1?.AttacksUsed ?? 0);
+                    this.Data.AddInt(0);
+
+                    // Team 2
+                    this.Data.AddLong(c2?.ClanId ?? 0);
+                    this.Data.AddString(c2?.ClanName ?? "Enemy");
+                    this.Data.AddInt(c2?.ClanBadge ?? 0);
+                    this.Data.AddInt(c2?.ClanLevel ?? 1);
+                    this.Data.Add((byte)0);
+                    this.Data.AddRange(new List<byte> { 1, 2, 3, 4 });
+                    this.Data.AddInt(c2?.TotalStars ?? 0);
+                    this.Data.AddInt((int)(c2?.TotalDestruction ?? 0));
+                    this.Data.AddInt(0);
+                    this.Data.AddInt(c2?.AttacksUsed ?? 0);
+                    this.Data.AddInt(0);
+
+                    this.Data.AddLong(m_vWar.WarId);
+
+                    this.Data.AddInt(0);
+                    this.Data.AddInt(0);
+
+                    this.Data.AddInt(1);
+                    this.Data.AddInt(m_vWar.RemainingTimeSeconds);
+                    this.Data.AddLong(c1?.ClanId ?? 0);
+                    this.Data.AddLong(c1?.ClanId ?? 0);
+                    this.Data.AddLong(c2?.ClanId ?? 0);
+                    this.Data.AddLong(c2?.ClanId ?? 0);
+
+                    this.Data.AddString(c1?.ClanName ?? "Clan");
+                    this.Data.AddString(c2?.ClanName ?? "Enemy");
+
+                    this.Data.AddInt(c1?.ClanLevel ?? 1);
+                    this.Data.AddInt(c2?.ClanLevel ?? 1);
+                    this.Data.AddInt(m_vWar.WarSize);
+
+                    this.Data.AddInt(0);
+
+                    this.Data.AddInt(8);
+                    this.Data.AddInt(0);
+                    this.Data.AddInt(0);
+                    this.Data.Add((byte)0);
+                    this.Data.AddInt(0);
+                    this.Data.AddInt(0);
+                    this.Data.AddInt(0);
+                    this.Data.AddInt(0);
+                }
+                else
+                {
+                    int warState = 0;
+                    if (playerClanId > 0 && ClanWarManager.IsClanSearching(playerClanId))
+                    {
+                        warState = (int)ClanWarState.SEARCHING; // 1
+                    }
+
+                    this.Data.AddInt(warState);
+                    this.Data.AddInt(0);
+
+                    string clanName = "Clan";
+                    int clanBadge = 0;
+                    int clanLevel = 1;
+                    if (playerClanId > 0)
+                    {
+                        Alliance a = ObjectManager.GetAlliance(playerClanId);
+                        if (a != null)
+                        {
+                            clanName = a.m_vAllianceName ?? "Clan";
+                            clanBadge = a.m_vAllianceBadgeData;
+                            clanLevel = a.m_vAllianceLevel;
+                        }
+                    }
+
+                    this.Data.AddLong(playerClanId > 0 ? playerClanId : 1);
+                    this.Data.AddString(clanName);
+                    this.Data.AddInt(clanBadge);
+                    this.Data.AddInt(clanLevel);
+                    this.Data.Add((byte)0);
+                    this.Data.AddRange(new List<byte> { 1, 2, 3, 4 });
+                    this.Data.AddInt(0);
+                    this.Data.AddInt(0);
+                    this.Data.AddInt(0);
+                    this.Data.AddInt(0);
+                    this.Data.AddInt(0);
+
+                    this.Data.AddLong(0);
+                    this.Data.AddString("Enemy");
+                    this.Data.AddInt(0);
+                    this.Data.AddInt(1);
+                    this.Data.Add((byte)0);
+                    this.Data.AddRange(new List<byte> { 1, 2, 3, 4 });
+                    this.Data.AddInt(0);
+                    this.Data.AddInt(0);
+                    this.Data.AddInt(0);
+                    this.Data.AddInt(0);
+                    this.Data.AddInt(0);
+
+                    this.Data.AddLong(0);
+
+                    this.Data.AddInt(0);
+                    this.Data.AddInt(0);
+
+                    this.Data.AddInt(0);
+                    this.Data.AddInt(0);
+                    this.Data.AddLong(0);
+                    this.Data.AddLong(0);
+                    this.Data.AddLong(0);
+                    this.Data.AddLong(0);
+
+                    this.Data.AddString(clanName);
+                    this.Data.AddString("Enemy");
+
+                    this.Data.AddInt(clanLevel);
+                    this.Data.AddInt(1);
+                    this.Data.AddInt(10);
+
+                    this.Data.AddInt(0);
+
+                    this.Data.AddInt(8);
+                    this.Data.AddInt(0);
+                    this.Data.AddInt(0);
+                    this.Data.Add((byte)0);
+                    this.Data.AddInt(0);
+                    this.Data.AddInt(0);
+                    this.Data.AddInt(0);
+                    this.Data.AddInt(0);
+                }
             }
             catch (Exception ex)
             {

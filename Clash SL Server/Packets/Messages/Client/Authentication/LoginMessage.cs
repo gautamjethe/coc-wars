@@ -237,30 +237,23 @@ namespace CSS.Packets.Messages.Client
                 ContentVersion = ContentVersion
             }.Send();
 
+            new OwnHomeDataMessage(this.Device, level).Send();
+            new BookmarkMessage(this.Device).Send();
+
             if (level.Avatar.AllianceId > 0)
             {
-
                 Alliance alliance = ObjectManager.GetAlliance(level.Avatar.AllianceId);
                 if (alliance != null)
                 {
                     new AllianceFullEntryMessage(this.Device, alliance).Send();
                     new AllianceStreamMessage(this.Device, alliance).Send();
                     new AllianceWarHistoryMessage(this.Device, alliance).Send();
-
-                    ClanWar war = ClanWarManager.GetWarByClanId(alliance.m_vAllianceId);
-                    if (war != null && war.State != ClanWarState.NOT_IN_WAR)
-                    {
-                        new AllianceWarDataMessage(this.Device, war).Send();
-                        new AllianceWarMapDataMessage(this.Device, war).Send();
-                    }
                 }
                 else
                 {
                     this.level.Avatar.AllianceId = 0;
                 }
             }
-            new OwnHomeDataMessage(this.Device, level).Send();
-            new BookmarkMessage(this.Device).Send();
 
             ClientAvatar _clientAvatar = this.Device.Player.Avatar;
             int avatarScore = _clientAvatar.GetScore();
