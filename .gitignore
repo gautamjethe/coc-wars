@@ -1,0 +1,10 @@
+# Runtime generated files
+**/Gamefiles/database/clan_wars.json
+**/Gamefiles/database/clan_war_history.json
+
+# Visual Studio / Mono
+*.suo
+*.user
+*.userprefs
+[Bb]in/Release/
+[Oo]bj/Release/
