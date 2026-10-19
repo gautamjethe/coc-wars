@@ -19,7 +19,7 @@ namespace CSS.Packets.Messages.Server
             {
                 DatabaseManager db = Resources.DatabaseManager ?? new DatabaseManager();
                 var season = db.GetOrCreateLeaderboardSeason("PlayerSeason", 2592000);
-                DateTime prevSeason = season.EndTime.AddMonths(-1);
+                DateTime prevSeason = DatabaseManager.Now.AddMonths(-1);
 
                 // Previous season leaderboard:
                 // Currently 0 archived players (prevents malformed packet crash when no snapshot exists)

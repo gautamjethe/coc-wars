@@ -74,15 +74,18 @@ namespace CSS.Packets.Messages.Server
                 // List 2: Previous Season (0 items to prevent binary format mismatch crash)
                 this.Data.AddInt(0);
 
-                // Season timer & dates (from database)
+                // Season timer & dates (from database in IST)
                 DatabaseManager db = Resources.DatabaseManager ?? new DatabaseManager();
-                var season = db.GetOrCreateLeaderboardSeason("PlayerSeason", 2592000); // 30-day season
+                var season = db.GetOrCreateLeaderboardSeason("PlayerSeason", 2592000);
+
+                DateTime istNow = DatabaseManager.Now;
+                DateTime prevSeason = istNow.AddMonths(-1);
 
                 this.Data.AddInt(season.RemainingSeconds);
-                this.Data.AddInt(season.EndTime.Year);
-                this.Data.AddInt(season.EndTime.Month);
-                this.Data.AddInt(season.EndTime.AddMonths(-1).Year);
-                this.Data.AddInt(season.EndTime.AddMonths(-1).Month);
+                this.Data.AddInt(istNow.Year);
+                this.Data.AddInt(istNow.Month); // In October: 10 -> Displays October
+                this.Data.AddInt(prevSeason.Year);
+                this.Data.AddInt(prevSeason.Month); // Previous month: 9 -> Displays September
             }
             catch (Exception ex)
             {

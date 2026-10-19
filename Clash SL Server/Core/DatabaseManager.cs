@@ -19,6 +19,37 @@ namespace CSS.Core
     {
         internal string Mysql;
 
+        public static readonly TimeSpan IstOffset = TimeSpan.FromHours(5.5); // UTC+05:30 (Indian Standard Time)
+        public static DateTime Now => DateTime.UtcNow.Add(IstOffset);
+
+        public static DateTime ToIst(DateTime dt)
+        {
+            if (dt == DateTime.MinValue || dt == DateTime.MaxValue) return dt;
+            if (dt.Kind == DateTimeKind.Utc) return dt.Add(IstOffset);
+            return dt;
+        }
+
+        public MySqlConnection OpenConnection()
+        {
+            var conn = new MySqlConnection(EnsureConnectionString());
+            conn.Open();
+            try
+            {
+                using (var cmd = new MySqlCommand("SET time_zone = '+05:30';", conn))
+                {
+                    cmd.ExecuteNonQuery();
+                }
+            }
+            catch { }
+            return conn;
+        }
+
+        public static MySqlConnection CreateAndOpenConnection()
+        {
+            DatabaseManager db = Resources.DatabaseManager ?? new DatabaseManager();
+            return db.OpenConnection();
+        }
+
         public DatabaseManager()
         {
             Task.Run(() => InitializeTables());
@@ -685,10 +716,8 @@ namespace CSS.Core
             {
                 if (war == null) return;
 
-                using (MySqlConnection conn = new MySqlConnection(EnsureConnectionString()))
+                using (MySqlConnection conn = OpenConnection())
                 {
-                    conn.Open();
-
                     // 1. Upsert ClanWar
                     string sqlWar = @"
                         INSERT INTO ClanWar (
@@ -735,11 +764,11 @@ namespace CSS.Core
                         cmd.Parameters.AddWithValue("@c2stars", war.Clan2?.TotalStars ?? 0);
                         cmd.Parameters.AddWithValue("@c2dest", war.Clan2?.TotalDestruction ?? 0);
 
-                        cmd.Parameters.AddWithValue("@pstart", war.PreparationStartTime > DateTime.MinValue ? war.PreparationStartTime.ToString("yyyy-MM-dd HH:mm:ss") : (object)DBNull.Value);
-                        cmd.Parameters.AddWithValue("@pend", war.PreparationEndTime > DateTime.MinValue ? war.PreparationEndTime.ToString("yyyy-MM-dd HH:mm:ss") : (object)DBNull.Value);
-                        cmd.Parameters.AddWithValue("@bstart", war.BattleStartTime > DateTime.MinValue ? war.BattleStartTime.ToString("yyyy-MM-dd HH:mm:ss") : (object)DBNull.Value);
-                        cmd.Parameters.AddWithValue("@bend", war.BattleEndTime > DateTime.MinValue ? war.BattleEndTime.ToString("yyyy-MM-dd HH:mm:ss") : (object)DBNull.Value);
-                        cmd.Parameters.AddWithValue("@wend", war.WarEndedTime > DateTime.MinValue ? war.WarEndedTime.ToString("yyyy-MM-dd HH:mm:ss") : (object)DBNull.Value);
+                        cmd.Parameters.AddWithValue("@pstart", war.PreparationStartTime > DateTime.MinValue ? ToIst(war.PreparationStartTime).ToString("yyyy-MM-dd HH:mm:ss") : (object)DBNull.Value);
+                        cmd.Parameters.AddWithValue("@pend", war.PreparationEndTime > DateTime.MinValue ? ToIst(war.PreparationEndTime).ToString("yyyy-MM-dd HH:mm:ss") : (object)DBNull.Value);
+                        cmd.Parameters.AddWithValue("@bstart", war.BattleStartTime > DateTime.MinValue ? ToIst(war.BattleStartTime).ToString("yyyy-MM-dd HH:mm:ss") : (object)DBNull.Value);
+                        cmd.Parameters.AddWithValue("@bend", war.BattleEndTime > DateTime.MinValue ? ToIst(war.BattleEndTime).ToString("yyyy-MM-dd HH:mm:ss") : (object)DBNull.Value);
+                        cmd.Parameters.AddWithValue("@wend", war.WarEndedTime > DateTime.MinValue ? ToIst(war.WarEndedTime).ToString("yyyy-MM-dd HH:mm:ss") : (object)DBNull.Value);
 
                         cmd.Parameters.AddWithValue("@data", war.SaveToJson().ToString(Newtonsoft.Json.Formatting.None));
 
@@ -1006,7 +1035,7 @@ namespace CSS.Core
             public DateTime StartTime;
             public DateTime EndTime;
             public int DurationSeconds;
-            public int RemainingSeconds => Math.Max(0, (int)(EndTime - DateTime.UtcNow).TotalSeconds);
+            public int RemainingSeconds => Math.Max(0, (int)(EndTime - DatabaseManager.Now).TotalSeconds);
         }
 
         private static ConcurrentDictionary<string, SeasonInfo> s_seasonCache = new ConcurrentDictionary<string, SeasonInfo>();
@@ -1015,9 +1044,8 @@ namespace CSS.Core
         {
             try
             {
-                using (MySqlConnection conn = new MySqlConnection(EnsureConnectionString()))
+                using (MySqlConnection conn = OpenConnection())
                 {
-                    conn.Open();
                     using (MySqlCommand cmd = new MySqlCommand("SELECT SeasonType, SeasonId, StartTime, EndTime, DurationSeconds FROM LeaderboardSeason WHERE SeasonType = @st LIMIT 1", conn))
                     {
                         cmd.Parameters.AddWithValue("@st", seasonType);
@@ -1036,21 +1064,24 @@ namespace CSS.Core
 
                                 reader.Close();
 
+                                DateTime now = DatabaseManager.Now;
+
                                 // Check rollover
-                                if (DateTime.UtcNow >= info.EndTime && info.DurationSeconds > 0)
+                                if (now >= info.EndTime && info.DurationSeconds > 0)
                                 {
-                                    int elapsed = (int)(DateTime.UtcNow - info.EndTime).TotalSeconds;
+                                    int elapsed = (int)(now - info.EndTime).TotalSeconds;
                                     int cycles = 1 + (elapsed / info.DurationSeconds);
                                     info.SeasonId += cycles;
                                     info.StartTime = info.EndTime.AddSeconds((cycles - 1) * info.DurationSeconds);
                                     info.EndTime = info.StartTime.AddSeconds(info.DurationSeconds);
 
                                     using (MySqlCommand updateCmd = new MySqlCommand(
-                                        "UPDATE LeaderboardSeason SET SeasonId = @sid, StartTime = @st, EndTime = @et, LastUpdateTime = NOW() WHERE SeasonType = @type", conn))
+                                        "UPDATE LeaderboardSeason SET SeasonId = @sid, StartTime = @st, EndTime = @et, LastUpdateTime = @lut WHERE SeasonType = @type", conn))
                                     {
                                         updateCmd.Parameters.AddWithValue("@sid", info.SeasonId);
-                                        updateCmd.Parameters.AddWithValue("@st", info.StartTime);
-                                        updateCmd.Parameters.AddWithValue("@et", info.EndTime);
+                                        updateCmd.Parameters.AddWithValue("@st", info.StartTime.ToString("yyyy-MM-dd HH:mm:ss"));
+                                        updateCmd.Parameters.AddWithValue("@et", info.EndTime.ToString("yyyy-MM-dd HH:mm:ss"));
+                                        updateCmd.Parameters.AddWithValue("@lut", now.ToString("yyyy-MM-dd HH:mm:ss"));
                                         updateCmd.Parameters.AddWithValue("@type", seasonType);
                                         updateCmd.ExecuteNonQuery();
                                     }
@@ -1063,26 +1094,39 @@ namespace CSS.Core
                     }
 
                     // Create row if missing
-                    DateTime now = DateTime.UtcNow;
-                    DateTime end = now.AddSeconds(defaultDurationSeconds);
+                    DateTime nowIst = DatabaseManager.Now;
+                    DateTime endIst;
+                    if (seasonType == "PlayerSeason")
+                    {
+                        // Default PlayerSeason to end at the end of the current month in IST
+                        DateTime nextMonthStart = new DateTime(nowIst.Year, nowIst.Month, 1).AddMonths(1);
+                        endIst = nextMonthStart;
+                        defaultDurationSeconds = (int)(endIst - nowIst).TotalSeconds;
+                    }
+                    else
+                    {
+                        endIst = nowIst.AddSeconds(defaultDurationSeconds);
+                    }
+
                     var newInfo = new SeasonInfo
                     {
                         SeasonType = seasonType,
                         SeasonId = 1,
-                        StartTime = now,
-                        EndTime = end,
+                        StartTime = nowIst,
+                        EndTime = endIst,
                         DurationSeconds = defaultDurationSeconds
                     };
 
                     using (MySqlCommand insertCmd = new MySqlCommand(
                         "INSERT INTO LeaderboardSeason (SeasonType, SeasonId, StartTime, EndTime, DurationSeconds, LastUpdateTime) " +
-                        "VALUES (@type, 1, @st, @et, @dur, NOW()) " +
-                        "ON DUPLICATE KEY UPDATE DurationSeconds=@dur, LastUpdateTime=NOW();", conn))
+                        "VALUES (@type, 1, @st, @et, @dur, @lut) " +
+                        "ON DUPLICATE KEY UPDATE DurationSeconds=@dur, LastUpdateTime=@lut;", conn))
                     {
                         insertCmd.Parameters.AddWithValue("@type", seasonType);
-                        insertCmd.Parameters.AddWithValue("@st", now);
-                        insertCmd.Parameters.AddWithValue("@et", end);
+                        insertCmd.Parameters.AddWithValue("@st", nowIst.ToString("yyyy-MM-dd HH:mm:ss"));
+                        insertCmd.Parameters.AddWithValue("@et", endIst.ToString("yyyy-MM-dd HH:mm:ss"));
                         insertCmd.Parameters.AddWithValue("@dur", defaultDurationSeconds);
+                        insertCmd.Parameters.AddWithValue("@lut", nowIst.ToString("yyyy-MM-dd HH:mm:ss"));
                         insertCmd.ExecuteNonQuery();
                     }
 
@@ -1096,13 +1140,17 @@ namespace CSS.Core
             }
 
             // Fallback in-memory cache if DB is unreachable
-            return s_seasonCache.GetOrAdd(seasonType, st => new SeasonInfo
+            return s_seasonCache.GetOrAdd(seasonType, st =>
             {
-                SeasonType = st,
-                SeasonId = 1,
-                StartTime = DateTime.UtcNow,
-                EndTime = DateTime.UtcNow.AddSeconds(defaultDurationSeconds),
-                DurationSeconds = defaultDurationSeconds
+                DateTime nowIst = DatabaseManager.Now;
+                return new SeasonInfo
+                {
+                    SeasonType = st,
+                    SeasonId = 1,
+                    StartTime = nowIst,
+                    EndTime = nowIst.AddSeconds(defaultDurationSeconds),
+                    DurationSeconds = defaultDurationSeconds
+                };
             });
         }
 
@@ -1128,10 +1176,8 @@ namespace CSS.Core
             // 2. Query Database if we have fewer than limit
             try
             {
-                DatabaseManager db = Resources.DatabaseManager ?? new DatabaseManager();
-                using (MySqlConnection conn = new MySqlConnection(db.EnsureConnectionString()))
+                using (MySqlConnection conn = CreateAndOpenConnection())
                 {
-                    conn.Open();
                     using (MySqlCommand cmd = new MySqlCommand("SELECT Avatar FROM Player ORDER BY LastUpdateTime DESC LIMIT 150", conn))
                     {
                         using (var reader = cmd.ExecuteReader())
@@ -1185,10 +1231,8 @@ namespace CSS.Core
             // 2. Query Database for additional clans
             try
             {
-                DatabaseManager db = Resources.DatabaseManager ?? new DatabaseManager();
-                using (MySqlConnection conn = new MySqlConnection(db.EnsureConnectionString()))
+                using (MySqlConnection conn = CreateAndOpenConnection())
                 {
-                    conn.Open();
                     using (MySqlCommand cmd = new MySqlCommand("SELECT Data FROM Clan LIMIT 150", conn))
                     {
                         using (var reader = cmd.ExecuteReader())
