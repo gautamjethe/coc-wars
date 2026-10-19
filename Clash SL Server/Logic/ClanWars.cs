@@ -607,7 +607,12 @@ namespace CSS.Logic
                             var player = await ResourcesManager.GetPlayer(mem.AvatarId);
                             if (player?.Client != null)
                             {
-                                new AllianceWarMapDataMessage(player.Client, this).Send();
+                                new AllianceFullEntryMessage(player.Client, a).Send();
+                                new AllianceWarDataMessage(player.Client, this).Send();
+                                if (player.Client.PlayerState == Enums.State.WAR_EMODE)
+                                {
+                                    new AllianceWarMapDataMessage(player.Client, this).Send();
+                                }
                             }
                         }
                     }

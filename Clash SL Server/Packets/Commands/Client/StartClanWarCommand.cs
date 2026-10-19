@@ -91,8 +91,8 @@ namespace CSS.Packets.Commands.Client
                         Level l = await ResourcesManager.GetPlayer(a.AvatarId);
                         if (l?.Client != null)
                         {
-                            new AllianceWarMapDataMessage(l.Client, war).Send();
                             new AllianceFullEntryMessage(l.Client, clan).Send();
+                            new AllianceWarDataMessage(l.Client, war).Send();
                             new AllianceStreamEntryMessage(l.Client) { StreamEntry = eventStreamEntry }.Send();
                         }
                     }
