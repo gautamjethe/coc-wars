@@ -42,12 +42,12 @@ namespace CSS.Packets.Commands.Client
                 Alliance clan = ObjectManager.GetAlliance(clanId);
                 if (clan == null) return;
 
-                // Check permissions: Leader (1) or Co-Leader (4)
+                // Check permissions: Leader (2) or Co-Leader (4)
                 if (clan.m_vAllianceMembers.TryGetValue(this.Device.Player.Avatar.UserId, out AllianceMemberEntry member))
                 {
-                    if (member.Role != 1 && member.Role != 4)
+                    if (member.Role != 2 && member.Role != 4)
                     {
-                        Logger.Write($"User {this.Device.Player.Avatar.UserId} tried to start clan war without Leader/Co-Leader role.");
+                        Logger.Write($"User {this.Device.Player.Avatar.UserId} tried to start clan war without Leader/Co-Leader role (Current Role: {member.Role}).");
                         return;
                     }
                 }
