@@ -35,21 +35,21 @@ namespace CSS.Packets.Messages.Server
                     remainingTime = Math.Max(0, (int)(DateTime.UtcNow - info.SearchStartTime).TotalSeconds);
                 }
 
-                this.Data.AddInt(warState); // War state: 0=Not started, 1=Searching, 4=Preparation, 5=Battle, 6=War end
-                this.Data.AddInt(0);        // Unknown
+                this.Data.AddInt(warState);      // Field 2: War state (offset 0x48)
+                this.Data.AddInt(remainingTime); // Field 3: Remaining countdown time in seconds (offset 0x54)
 
                 if (war != null && war.State != ClanWarState.NOT_IN_WAR)
                 {
                     this.Data.Add((byte)1);
-                    this.Data.AddLong(war.WarId);
+                    this.Data.AddLong(war.WarId); // Field 4: War ID (offset 0x58)
                 }
                 else
                 {
                     this.Data.Add((byte)0);
                 }
 
-                this.Data.AddInt(remainingTime); // 4-byte int (RemainingTimeSeconds)
-                this.Data.Add((byte)0);          // 1-byte boolean (optional long flag)
+                this.Data.AddInt(0);             // Field 5: Unknown int32 (offset 0x4c)
+                this.Data.Add((byte)0);          // Field 6: Optional long flag (offset 0x50)
                 this.Data.AddRange(m_vAlliance.EncodeFullEntry());
             }
             catch (Exception ex)
