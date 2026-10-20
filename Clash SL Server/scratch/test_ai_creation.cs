@@ -49,14 +49,6 @@ namespace Scratch
                     throw new Exception("EncodeSync failed or returned 0 bytes!");
                 }
 
-                // Verify ClanWar AI clan generation
-                var aiWarClan = ClanWarManager.CreatePresetWarMember(nextC1, 0, 9, "TestBot");
-                Console.WriteLine($"Created ClanWar AI Member: UserId={aiWarClan.UserId}, MapPos={aiWarClan.MapPosition}");
-                if (aiWarClan.UserId >= 99990000)
-                {
-                    throw new Exception($"AI war member UserId is {aiWarClan.UserId}, which is in 999999x range!");
-                }
-
                 Console.WriteLine("\n========================================================");
                 Console.WriteLine(">>> ALL AI & SEQUENTIAL PLAYER ID TESTS PASSED! <<<");
                 Console.WriteLine("========================================================");

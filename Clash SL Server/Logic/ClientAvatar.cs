@@ -82,10 +82,6 @@ namespace CSS.Logic
             QuickTrain1          = new List<DataSlot>();
             QuickTrain2          = new List<DataSlot>();
             QuickTrain3          = new List<DataSlot>();
-            LastTickSaved        = DateTime.UtcNow;
-            m_vAccountCreationDate = DateTime.UtcNow;
-            TutorialStepsCount   = 0x0A;
-            AvatarName           = "NoNameYet";
         }
 
         public ClientAvatar(long id, string token) : this()
@@ -108,64 +104,11 @@ namespace CSS.Logic
             this.m_vTrophy            = AppSettings["startingTrophies"] == "random" ? rnd.Next(1500, 4999) : ToInt32(AppSettings["startingTrophies"]);
 
             this.AvatarName          = "NoNameYet";
-            this.TutorialStepsCount  = 0x0A;
-            this.LastTickSaved       = DateTime.UtcNow;
-            this.m_vAccountCreationDate = DateTime.UtcNow;
-            this.m_vnameChosenByUser = 0x00;
-            this.m_vNameChangingLeft = 0x02;
 
             SetResourceCount(CSVManager.DataTables.GetResourceByName("Gold"), ToInt32(AppSettings["startingGold"]));
             SetResourceCount(CSVManager.DataTables.GetResourceByName("Elixir"), ToInt32(AppSettings["startingElixir"]));
             SetResourceCount(CSVManager.DataTables.GetResourceByName("DarkElixir"), ToInt32(AppSettings["startingDarkElixir"]));
             SetResourceCount(CSVManager.DataTables.GetResourceByName("Diamonds"), ToInt32(AppSettings["startingGems"]));
-        }
-
-        public void InitializeDefaultTroopsAndSpells()
-        {
-            try
-            {
-                var charTable = CSVManager.DataTables.GetTable(3);
-                if (charTable != null)
-                {
-                    for (int i = 0; i < charTable.GetItemCount(); i++)
-                    {
-                        var cd = (CharacterData)charTable.GetItemAt(i);
-                        if (cd != null)
-                        {
-                            SetUnitUpgradeLevel(cd, 0);
-                        }
-                    }
-                }
-
-                var spellTable = CSVManager.DataTables.GetTable(25);
-                if (spellTable != null)
-                {
-                    for (int i = 0; i < spellTable.GetItemCount(); i++)
-                    {
-                        var sd = (SpellData)spellTable.GetItemAt(i);
-                        if (sd != null)
-                        {
-                            SetUnitUpgradeLevel(sd, 0);
-                        }
-                    }
-                }
-
-                var heroTable = CSVManager.DataTables.GetTable(27);
-                if (heroTable != null)
-                {
-                    for (int i = 0; i < heroTable.GetItemCount(); i++)
-                    {
-                        var hd = (HeroData)heroTable.GetItemAt(i);
-                        if (hd != null)
-                        {
-                            SetUnitUpgradeLevel(hd, 0);
-                            SetHeroHealth(hd, 0);
-                            SetHeroState(hd, 3);
-                        }
-                    }
-                }
-            }
-            catch (Exception) { }
         }
 
         public List<DataSlot> Achievements { get; set; }
@@ -329,15 +272,14 @@ namespace CSS.Logic
                 data.AddLong(946720861000);
 
                 data.Add(this.m_vnameChosenByUser);
-                data.Add(this.m_vNameChangingLeft);
 
                 data.AddInt(0);
                 data.AddInt(0);
                 data.AddInt(0);
                 data.AddInt(1);
-                data.AddInt(0);
-                data.AddInt(0);
 
+                data.AddInt(0);
+                data.AddInt(0);
                 data.Add(0);
                 data.AddDataSlots(GetResourceCaps());
                 data.AddDataSlots(GetResources());
@@ -372,10 +314,9 @@ namespace CSS.Logic
                     data.AddRange(BitConverter.GetBytes(0).Reverse());
                 }
 
-                int npcCount = ObjectManager.NpcLevels.Count;
-                data.AddRange(BitConverter.GetBytes(npcCount).Reverse());
+                data.AddRange(BitConverter.GetBytes(ObjectManager.NpcLevels.Count).Reverse());
                 {
-                    for (var i = 17000000; i < 17000000 + npcCount; i++)
+                    for (var i = 17000000; i < 17000050; i++)
                     {
                         data.AddRange(BitConverter.GetBytes(i).Reverse());
                         data.AddRange(BitConverter.GetBytes(rnd.Next(3, 3)).Reverse());
@@ -576,7 +517,7 @@ namespace CSS.Logic
                 ds.Load(data);
                 AllianceUnits.Add(ds);
             }
-            TutorialStepsCount = jsonObject["tutorial_step"] != null ? jsonObject["tutorial_step"].ToObject<uint>() : 0x0Au;
+            TutorialStepsCount = jsonObject["tutorial_step"].ToObject<uint>();
 
             JArray jsonAchievementsProgress = (JArray) jsonObject["achievements_progress"];
             foreach (JObject data in jsonAchievementsProgress)
@@ -822,7 +763,6 @@ namespace CSS.Logic
             {
                 m_vNameChangingLeft = 0x02;
             }
-            this.m_vnameChosenByUser = 0x01;
             TutorialStepsCount = 0x0D;
         }
 

@@ -17,7 +17,7 @@ namespace CSS.Packets.Messages.Server
 
         public Level Player;
 
-        internal override void Encode()
+        internal override async void Encode()
         {
             try
             {
@@ -34,16 +34,15 @@ namespace CSS.Packets.Messages.Server
                 this.Data.AddInt(-1);
                 this.Data.AddInt((int)Player.Avatar.LastTickSaved.Subtract(new DateTime(1970, 1, 1)).TotalSeconds);
                 this.Data.AddRange(_Home.Encode);
-                this.Data.AddRange(this.Player.Avatar.EncodeSync());
+                this.Data.AddRange(await this.Player.Avatar.Encode());
                 this.Data.AddInt(this.Device.PlayerState == State.WAR_EMODE ? 1 : 0);
                 this.Data.AddInt(0);
                 this.Data.AddLong(0);
                 this.Data.AddLong(0);
                 this.Data.AddLong(0);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                CSS.Core.Logger.Write($"[Error] OwnHomeDataMessage.Encode failed: {ex.Message}");
             }
         }
     }

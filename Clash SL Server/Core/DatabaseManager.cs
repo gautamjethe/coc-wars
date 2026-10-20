@@ -262,7 +262,7 @@ namespace CSS.Core
                 using (MySqlConnection conn = new MySqlConnection(EnsureConnectionString()))
                 {
                     conn.Open();
-                    using (MySqlCommand cmd = new MySqlCommand("SELECT PlayerId FROM Player WHERE PlayerId < 100000000", conn))
+                    using (MySqlCommand cmd = new MySqlCommand("SELECT PlayerId FROM Player", conn))
                     using (var reader = cmd.ExecuteReader())
                     {
                         while (reader.Read())
@@ -287,7 +287,7 @@ namespace CSS.Core
                 using (MySqlConnection conn = new MySqlConnection(EnsureConnectionString()))
                 {
                     conn.Open();
-                    using (MySqlCommand cmd = new MySqlCommand("SELECT ClanId FROM Clan WHERE ClanId < 100000000", conn))
+                    using (MySqlCommand cmd = new MySqlCommand("SELECT ClanId FROM Clan", conn))
                     using (var reader = cmd.ExecuteReader())
                     {
                         while (reader.Read())
@@ -308,7 +308,7 @@ namespace CSS.Core
         {
             try
             {
-                const string SQL = "SELECT coalesce(MAX(ClanId), 0) FROM Clan WHERE ClanId < 100000000";
+                const string SQL = "SELECT coalesce(MAX(ClanId), 0) FROM Clan";
                 long Seed = -1;
 
                 using (MySqlConnection Conn = new MySqlConnection(EnsureConnectionString()))
@@ -335,7 +335,7 @@ namespace CSS.Core
         {
             try
             {
-                const string SQL = "SELECT coalesce(MAX(PlayerId), 0) FROM Player WHERE PlayerId < 100000000";
+                const string SQL = "SELECT coalesce(MAX(PlayerId), 0) FROM Player";
                 long Seed = -1;
 
                 using (MySqlConnection Conn = new MySqlConnection(EnsureConnectionString()))

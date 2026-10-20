@@ -80,12 +80,13 @@ namespace CSS.Packets.Commands.Client
                 else if (memberCount >= 20) teamSize = 20;
                 else if (memberCount >= 15) teamSize = 15;
                 else if (memberCount >= 10) teamSize = 10;
-                else teamSize = 5; // Standard minimum Clan War size (5v5); remaining slots filled with dummy members
+                else teamSize = Math.Max(1, memberCount);
 
-                // Start the war!
-                var war = await ClanWarManager.StartWar(clan, null, teamSize);
+                // Start searching for another real clan!
+                await ClanWarManager.StartSearch(clan, teamSize);
 
-                if (war != null)
+                var war = ClanWarManager.GetWarByClanId(clanId);
+                if (war != null && war.State != ClanWarState.NOT_IN_WAR)
                 {
                     AllianceEventStreamEntry eventStreamEntry = new AllianceEventStreamEntry();
                     eventStreamEntry.ID = (int)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds;
@@ -102,6 +103,18 @@ namespace CSS.Packets.Commands.Client
                             new AllianceWarDataMessage(l.Client, war).Send();
                             new AllianceWarMapDataMessage(l.Client, war).Send();
                             new AllianceStreamEntryMessage(l.Client) { StreamEntry = eventStreamEntry }.Send();
+                        }
+                    }
+                }
+                else
+                {
+                    // Clan is in matchmaking search queue
+                    foreach (AllianceMemberEntry a in clan.GetAllianceMembers())
+                    {
+                        Level l = await ResourcesManager.GetPlayer(a.AvatarId);
+                        if (l?.Client != null)
+                        {
+                            new AllianceWarDataMessage(l.Client).Send();
                         }
                     }
                 }

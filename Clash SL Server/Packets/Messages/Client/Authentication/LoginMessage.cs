@@ -274,19 +274,21 @@ namespace CSS.Packets.Messages.Client
                 }
             }
 
-            // Defended replay stream should not be sent with fake data on login
-            // new AvatarStreamMessage(this.Device, 7).Send();
+            //Defended
+            new AvatarStreamMessage(this.Device,7).Send();
 
-            if (ResourcesManager.IsPlayerOnline(level) && level.Avatar.AllianceId > 0)
+            if (ResourcesManager.IsPlayerOnline(level))
             {
                 AllianceMailStreamEntry mail = new AllianceMailStreamEntry();
                 mail.ID = (int)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds;
                 mail.SenderId = 0;
+                //mail.SetSenderName("Clash Of Heroes Team");
                 mail.m_vSenderName = "DARK TEAM";
                 mail.IsNew = 2;
-                mail.AllianceId = level.Avatar.AllianceId;
+                mail.AllianceId = 0;
                 mail.m_vSenderLeagueId = 22;
                 mail.AllianceBadgeData = 1526735450;
+                //mail.SetAllianceName("COH-TEAM");
                 mail.AllianceName = "DARK";
                 mail.Message = ConfigurationManager.AppSettings["AdminMessage"];
                 mail.m_vSenderLevel = 500;
@@ -354,8 +356,7 @@ namespace CSS.Packets.Messages.Client
             level.Avatar.InitializeAccountCreationDate();
             level.Avatar.m_vAndroid = this.Android;
 
-            Console.WriteLine($"[AUTH] Created new account: PlayerId={level.Avatar.UserId}, Token={level.Avatar.UserToken}");
-            Resources.DatabaseManager.Save(level).Wait();
+            Resources.DatabaseManager.Save(level);
             LogUser();
         }
     }

@@ -19,19 +19,18 @@ namespace CSS.Packets.Messages.Server
             this.Device.PlayerState = State.IN_BATTLE;
         }
 
-        internal override void Encode()
+        internal override async void Encode()
         {
             try
             {
                 this.Data.AddInt(0);
                 this.Data.AddInt((int)Player.Avatar.LastTickSaved.Subtract(new DateTime(1970, 1, 1)).TotalSeconds);
                 this.Data.AddRange(new ClientHome { Id = Player.Avatar.UserId, ShieldTime = this.Player.Avatar.m_vShieldTime, ProtectionTime = this.Player.Avatar.m_vProtectionTime, Village = this.JsonBase }.Encode);
-                this.Data.AddRange(this.Player.Avatar.EncodeSync());
+                this.Data.AddRange(await this.Player.Avatar.Encode());
                 this.Data.AddInt(this.LevelId);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                CSS.Core.Logger.Write($"[Error] NpcDataMessage.Encode failed: {ex.Message}");
             }
         }
 

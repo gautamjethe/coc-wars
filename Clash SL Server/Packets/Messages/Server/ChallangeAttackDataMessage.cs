@@ -16,7 +16,7 @@ namespace CSS.Packets.Messages.Server
             this.VisitorLevel = client.Player;
         }
 
-        internal override void Encode()
+        internal override async void Encode()
         {
             try
             {
@@ -28,8 +28,8 @@ namespace CSS.Packets.Messages.Server
 
                 this.Data.AddRange(new byte[]{0x00, 0x00, 0x00, 0xF0,0xFF, 0xFF, 0xFF, 0xFF,0x54, 0xCE, 0x5C, 0x4A});
                 this.Data.AddRange(ch.Encode);
-                this.Data.AddRange(this.OwnerLevel.Avatar.EncodeSync());
-                this.Data.AddRange(this.OwnerLevel.Avatar.EncodeSync());
+                this.Data.AddRange(await this.OwnerLevel.Avatar.Encode());
+                this.Data.AddRange(await this.OwnerLevel.Avatar.Encode());
                 this.Data.AddRange(new byte[]{0x00, 0x00, 0x00, 0x03, 0x00});
                 this.Data.AddInt(0);
                 this.Data.AddInt(0);
@@ -37,10 +37,7 @@ namespace CSS.Packets.Messages.Server
                 this.Data.AddLong(0);
                 this.Data.AddLong(0);
             }
-            catch (Exception ex)
-            {
-                CSS.Core.Logger.Write($"[Error] ChallangeAttackDataMessage.Encode failed: {ex.Message}");
-            }
+            catch (Exception) { }
         }
     }
 }

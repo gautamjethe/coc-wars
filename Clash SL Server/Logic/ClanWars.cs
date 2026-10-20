@@ -879,7 +879,6 @@ namespace CSS.Logic
         public long ClanId { get; set; }
         public int TeamSize { get; set; }
         public DateTime SearchStartTime { get; set; }
-        public int TimeoutSeconds { get; set; } = 10;
     }
 
     public static class ClanWarManager
@@ -904,7 +903,7 @@ namespace CSS.Logic
             return SearchingClans.ContainsKey(clanId);
         }
 
-        internal static async Task StartSearch(Alliance clan, int teamSize = 10, int timeoutSeconds = 10)
+        internal static async Task StartSearch(Alliance clan, int teamSize = 10)
         {
             if (clan == null) return;
             long clanId = clan.m_vAllianceId;
@@ -925,8 +924,7 @@ namespace CSS.Logic
             {
                 ClanId = clanId,
                 TeamSize = teamSize,
-                SearchStartTime = DateTime.UtcNow,
-                TimeoutSeconds = timeoutSeconds
+                SearchStartTime = DateTime.UtcNow
             };
 
             // Notify online members of search state
@@ -949,11 +947,12 @@ namespace CSS.Logic
                     Alliance otherClan = ObjectManager.GetAlliance(kvp.Key);
                     if (otherClan != null)
                     {
-                        SearchingClans.TryRemove(clanId, out _);
-                        SearchingClans.TryRemove(kvp.Key, out _);
-                        Logger.Say($"Matchmaking found! Clan '{clan.m_vAllianceName}' vs Clan '{otherClan.m_vAllianceName}' ({teamSize}v{teamSize})");
-                        await StartWar(clan, otherClan, teamSize);
-                        return;
+                        if (SearchingClans.TryRemove(clanId, out _) && SearchingClans.TryRemove(kvp.Key, out _))
+                        {
+                            Logger.Say($"Matchmaking found! Real Clan '{clan.m_vAllianceName}' vs Real Clan '{otherClan.m_vAllianceName}' ({teamSize}v{teamSize})");
+                            await StartWar(clan, otherClan, teamSize);
+                            return;
+                        }
                     }
                 }
             }
@@ -1052,7 +1051,7 @@ namespace CSS.Logic
                 if (!loadedFromDb && File.Exists(WarsFilePath))
                 {
                     string content = File.ReadAllText(WarsFilePath);
-                    if (!string.IsNullOrWhiteSpace(content))
+                    if (!string.IsNullOrWhiteSpace(content) && content.Trim().StartsWith("["))
                     {
                         var arr = JArray.Parse(content);
                         foreach (JObject item in arr)
@@ -1071,7 +1070,7 @@ namespace CSS.Logic
                 if (File.Exists(HistoryFilePath))
                 {
                     string content = File.ReadAllText(HistoryFilePath);
-                    if (!string.IsNullOrWhiteSpace(content))
+                    if (!string.IsNullOrWhiteSpace(content) && content.Trim().StartsWith("{"))
                     {
                         var obj = JObject.Parse(content);
                         foreach (var prop in obj.Properties())
@@ -1102,55 +1101,13 @@ namespace CSS.Logic
 
         private static void RestoreWarMembersInMemory(ClanWar war)
         {
-            if (war.Clan1?.Members != null)
+            if (war.Clan1 != null)
             {
-                foreach (var m in war.Clan1.Members)
-                {
-                    if (!ResourcesManager.m_vInMemoryLevels.ContainsKey(m.UserId))
-                    {
-                        var p = ResourcesManager.GetPlayer(m.UserId).Result;
-                        if (p == null)
-                        {
-                            CreateDummyLevel(m.UserId, m.ClanId, m.Name, m.TownHallLevel);
-                        }
-                    }
-                }
+                ObjectManager.GetAlliance(war.Clan1.ClanId);
             }
-            if (war.Clan2?.Members != null)
+            if (war.Clan2 != null)
             {
-                foreach (var m in war.Clan2.Members)
-                {
-                    if (!ResourcesManager.m_vInMemoryLevels.ContainsKey(m.UserId))
-                    {
-                        var p = ResourcesManager.GetPlayer(m.UserId).Result;
-                        if (p == null)
-                        {
-                            CreateDummyLevel(m.UserId, m.ClanId, m.Name, m.TownHallLevel);
-                        }
-                    }
-                }
-
-                if (!ResourcesManager.InMemoryAlliancesContain(war.Clan2.ClanId))
-                {
-                    var aiAlliance = new Alliance(war.Clan2.ClanId)
-                    {
-                        m_vAllianceName = war.Clan2.ClanName,
-                        m_vAllianceBadgeData = war.Clan2.ClanBadge,
-                        m_vAllianceLevel = war.Clan2.ClanLevel,
-                        m_vAllianceType = 0,
-                        m_vWarLogPublic = 1
-                    };
-                    foreach (var m in war.Clan2.Members)
-                    {
-                        aiAlliance.AddAllianceMember(new AllianceMemberEntry(m.UserId)
-                        {
-                            Role = (m.MapPosition == 0 ? 2 : 1),
-                            WarOptInStatus = 1,
-                            Order = m.MapPosition + 1
-                        });
-                    }
-                    ResourcesManager.AddAllianceInMemory(aiAlliance);
-                }
+                ObjectManager.GetAlliance(war.Clan2.ClanId);
             }
         }
 
@@ -1350,25 +1307,34 @@ namespace CSS.Logic
                     war.Tick();
                 }
 
-                // 2. Check matchmaking search timeouts
-                DateTime now = DateTime.UtcNow;
-                foreach (var kvp in SearchingClans.ToArray())
+                // 2. Periodic Matchmaking check: pair any searching real clans with same team size
+                var searchingList = SearchingClans.Values.ToArray();
+                for (int i = 0; i < searchingList.Length; i++)
                 {
-                    if ((now - kvp.Value.SearchStartTime).TotalSeconds >= kvp.Value.TimeoutSeconds)
+                    for (int j = i + 1; j < searchingList.Length; j++)
                     {
-                        if (SearchingClans.TryRemove(kvp.Key, out SearchingClanInfo info))
+                        var info1 = searchingList[i];
+                        var info2 = searchingList[j];
+                        if (info1.TeamSize == info2.TeamSize && info1.ClanId != info2.ClanId)
                         {
-                            Alliance clan = ObjectManager.GetAlliance(info.ClanId);
-                            if (clan != null)
+                            if (SearchingClans.TryRemove(info1.ClanId, out _) && SearchingClans.TryRemove(info2.ClanId, out _))
                             {
-                                Logger.Say($"Matchmaking timeout reached for Clan '{clan.m_vAllianceName}'. Generating AI opponent...");
-                                await StartWar(clan, null, info.TeamSize);
+                                Alliance clan1 = ObjectManager.GetAlliance(info1.ClanId);
+                                Alliance clan2 = ObjectManager.GetAlliance(info2.ClanId);
+                                if (clan1 != null && clan2 != null)
+                                {
+                                    Logger.Say($"[ClanWars] Matchmaking matched Real Clan '{clan1.m_vAllianceName}' vs Real Clan '{clan2.m_vAllianceName}' ({info1.TeamSize}v{info1.TeamSize})");
+                                    await StartWar(clan1, clan2, info1.TeamSize);
+                                }
                             }
                         }
                     }
                 }
             }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                Logger.Write($"[Error] ClanWarManager.OnTick error: {ex.Message}");
+            }
         }
 
         public static ClanWar GetWar(long warId)
@@ -1436,9 +1402,10 @@ namespace CSS.Logic
             return ClanWarState.NOT_IN_WAR;
         }
 
-        internal static async Task<ClanWar> StartWar(Alliance clan1, Alliance clan2 = null, int teamSize = 10)
+        internal static async Task<ClanWar> StartWar(Alliance clan1, Alliance clan2, int teamSize = 10)
         {
-            if (clan1 == null) return null;
+            if (clan1 == null || clan2 == null) return null;
+            if (clan1.m_vAllianceId == clan2.m_vAllianceId) return null;
 
             long warId = ++m_vWarSeed;
             ClanWar war = new ClanWar
@@ -1456,7 +1423,7 @@ namespace CSS.Logic
             war.BattleStartTime = war.PreparationEndTime;
             war.BattleEndTime = war.BattleStartTime.AddMinutes(battleMinutes);
 
-            // Populate Clan 1
+            // Populate Clan 1 - Real members only
             war.Clan1 = new WarClan(clan1);
             var members1 = clan1.GetAllianceMembers().Where(m => m.WarOptInStatus == 1).ToList();
             if (members1.Count < teamSize)
@@ -1479,226 +1446,74 @@ namespace CSS.Logic
                 }
             }
 
-            string[] friendlyNames = { "Ironclad", "ShadowBlade", "Valkyrie", "DragonHeart", "ThunderStrike", "Phoenix", "Titan", "Berserker", "Warlock", "Paladin", "Gladiator", "Apex", "Centurion", "Overlord", "Crusader" };
-
-            // Fill remaining slots if clan has fewer than teamSize members
-            int clan1BaseTh = war.Clan1.Members.Count > 0 ? war.Clan1.Members[0].TownHallLevel : 9;
-            while (war.Clan1.Members.Count < teamSize)
+            // Populate Clan 2 - Real members only
+            war.Clan2 = new WarClan(clan2);
+            var members2 = clan2.GetAllianceMembers().Where(m => m.WarOptInStatus == 1).ToList();
+            if (members2.Count < teamSize)
             {
-                int dummyPos = war.Clan1.Members.Count;
-                long dummyId = ObjectManager.GeneratePlayerId();
-                string dummyName = friendlyNames[dummyPos % friendlyNames.Length];
-                int th = Math.Max(5, Math.Min(11, clan1BaseTh - (dummyPos * 3 / teamSize)));
-
-                Level dummyLevel = CreateDummyLevel(dummyId, clan1.m_vAllianceId, dummyName, th, 1);
-                if (!clan1.m_vAllianceMembers.ContainsKey(dummyId))
-                {
-                    clan1.AddAllianceMember(new AllianceMemberEntry(dummyId)
-                    {
-                        Role = 1,
-                        WarOptInStatus = 1,
-                        Order = dummyPos + 1,
-                        PreviousOrder = dummyPos + 1
-                    });
-                }
-
-                var dummyWarMember = new ClanWarMember(dummyLevel.Avatar, dummyPos, clan1.m_vAllianceId)
-                {
-                    VillageJson = dummyLevel.SaveToJSON()
-                };
-                war.Clan1.Members.Add(dummyWarMember);
+                members2 = clan2.GetAllianceMembers();
             }
 
-            // Sort members by TownHall level / defense weight descending, so map positions 0..teamSize-1 match strength!
+            pos = 0;
+            foreach (var m in members2.Take(teamSize))
+            {
+                Level p = await ResourcesManager.GetPlayer(m.AvatarId);
+                if (p != null)
+                {
+                    var warMember = new ClanWarMember(p.Avatar, pos, clan2.m_vAllianceId)
+                    {
+                        VillageJson = p.SaveToJSON()
+                    };
+                    war.Clan2.Members.Add(warMember);
+                    pos++;
+                }
+            }
+
+            if (war.Clan1.Members.Count == 0 || war.Clan2.Members.Count == 0)
+            {
+                Logger.Say($"[ClanWars] Failed to start war: one or both clans have no eligible real members ({war.Clan1.Members.Count} vs {war.Clan2.Members.Count}).");
+                return null;
+            }
+
+            // Set actual war size based on real participants
+            war.WarSize = Math.Min(war.Clan1.Members.Count, war.Clan2.Members.Count);
+
+            // Sort members by TownHall level / defense weight descending, so map positions 0..count-1 match strength!
             war.Clan1.Members = war.Clan1.Members.OrderByDescending(m => m.TownHallLevel).ThenByDescending(m => m.DefenceWeight).ToList();
             for (int i = 0; i < war.Clan1.Members.Count; i++)
             {
                 war.Clan1.Members[i].MapPosition = i;
             }
 
+            war.Clan2.Members = war.Clan2.Members.OrderByDescending(m => m.TownHallLevel).ThenByDescending(m => m.DefenceWeight).ToList();
+            for (int i = 0; i < war.Clan2.Members.Count; i++)
+            {
+                war.Clan2.Members[i].MapPosition = i;
+            }
+
             try
             {
                 Resources.DatabaseManager.Save(clan1);
+                Resources.DatabaseManager.Save(clan2);
             }
             catch (Exception) { }
-
-            // Populate Clan 2
-            if (clan2 != null)
-            {
-                war.Clan2 = new WarClan(clan2);
-                var members2 = clan2.GetAllianceMembers().Where(m => m.WarOptInStatus == 1).ToList();
-                if (members2.Count < teamSize) members2 = clan2.GetAllianceMembers();
-
-                pos = 0;
-                foreach (var m in members2.Take(teamSize))
-                {
-                    Level p = await ResourcesManager.GetPlayer(m.AvatarId);
-                    if (p != null)
-                    {
-                        var warMember = new ClanWarMember(p.Avatar, pos, clan2.m_vAllianceId)
-                        {
-                            VillageJson = p.SaveToJSON()
-                        };
-                        war.Clan2.Members.Add(warMember);
-                        pos++;
-                    }
-                }
-                int clan2BaseTh = war.Clan2.Members.Count > 0 ? war.Clan2.Members[0].TownHallLevel : 9;
-                while (war.Clan2.Members.Count < teamSize)
-                {
-                    int dummyPos = war.Clan2.Members.Count;
-                    long dummyId = ObjectManager.GeneratePlayerId();
-                    string dummyName = friendlyNames[dummyPos % friendlyNames.Length];
-                    int th = Math.Max(5, Math.Min(11, clan2BaseTh - (dummyPos * 3 / teamSize)));
-
-                    Level dummyLevel = CreateDummyLevel(dummyId, clan2.m_vAllianceId, dummyName, th, 1);
-                    if (!clan2.m_vAllianceMembers.ContainsKey(dummyId))
-                    {
-                        clan2.AddAllianceMember(new AllianceMemberEntry(dummyId)
-                        {
-                            Role = 1,
-                            WarOptInStatus = 1,
-                            Order = dummyPos + 1,
-                            PreviousOrder = dummyPos + 1
-                        });
-                    }
-                    var dummyWarMember = new ClanWarMember(dummyLevel.Avatar, dummyPos, clan2.m_vAllianceId)
-                    {
-                        VillageJson = dummyLevel.SaveToJSON()
-                    };
-                    war.Clan2.Members.Add(dummyWarMember);
-                }
-                war.Clan2.Members = war.Clan2.Members.OrderByDescending(m => m.TownHallLevel).ThenByDescending(m => m.DefenceWeight).ToList();
-                for (int i = 0; i < war.Clan2.Members.Count; i++)
-                {
-                    war.Clan2.Members[i].MapPosition = i;
-                }
-                try
-                {
-                    Resources.DatabaseManager.Save(clan2);
-                }
-                catch (Exception) { }
-            }
-            else
-            {
-                // Generate AI Opponent Clan using PVP Base Presets matching Clan 1 strength
-                int avgTh = war.Clan1.Members.Count > 0 ? war.Clan1.Members[0].TownHallLevel : 9;
-                war.Clan2 = GenerateAIOpponentClan(teamSize, avgTh);
-            }
 
             Wars[warId] = war;
             ClanToWarMap[clan1.m_vAllianceId] = warId;
-            if (war.Clan2 != null)
-            {
-                ClanToWarMap[war.Clan2.ClanId] = warId;
-            }
+            ClanToWarMap[clan2.m_vAllianceId] = warId;
             SaveState();
 
-            // Update clan state
+            // Update clan states
             clan1.m_vWarState = (int)ClanWarState.PREPARATION_DAY;
             clan1.m_vActiveWarId = warId;
-            if (clan2 != null)
-            {
-                clan2.m_vWarState = (int)ClanWarState.PREPARATION_DAY;
-                clan2.m_vActiveWarId = warId;
-            }
+            clan2.m_vWarState = (int)ClanWarState.PREPARATION_DAY;
+            clan2.m_vActiveWarId = warId;
 
-            // Broadcast War started message & map update
+            // Broadcast War started message & map update to both real clans
             war.BroadcastWarMapUpdate();
 
-            Logger.Say($"Started Clan War {warId}: '{war.Clan1.ClanName}' vs '{war.Clan2.ClanName}' ({teamSize}v{teamSize})");
+            Logger.Say($"Started Clan War {warId}: Real Clan '{war.Clan1.ClanName}' vs Real Clan '{war.Clan2.ClanName}' ({war.WarSize}v{war.WarSize})");
             return war;
-        }
-
-        internal static Level CreateDummyLevel(long dummyId, long clanId, string name, int th, int role = 1)
-        {
-            string presetVillage = GetPresetBase(th);
-            Level dummyLevel = new Level(dummyId);
-            if (!string.IsNullOrEmpty(presetVillage))
-            {
-                dummyLevel.LoadFromJSON(presetVillage);
-            }
-            dummyLevel.Avatar.UserId = dummyId;
-            dummyLevel.Avatar.CurrentHomeId = dummyId;
-            dummyLevel.Avatar.AvatarName = name;
-            dummyLevel.Avatar.m_vTownHallLevel = th;
-            dummyLevel.Avatar.AllianceId = clanId;
-            dummyLevel.Avatar.SetScore(1200 + th * 150 + (int)(dummyId % 70));
-            dummyLevel.Avatar.m_vAvatarLevel = 30 + th * 8;
-            dummyLevel.Avatar.m_vLeagueId = (byte)(th >= 11 ? 16 : (th >= 9 ? 13 : (th >= 7 ? 10 : 7)));
-            dummyLevel.Avatar.m_vDonated = 150 + th * 20;
-            dummyLevel.Avatar.m_vReceived = 100 + th * 15;
-            dummyLevel.Avatar.TutorialStepsCount = 13;
-
-            PopulateDummyTroops(dummyLevel.Avatar, th);
-
-            ResourcesManager.LoadLevel(dummyLevel);
-            return dummyLevel;
-        }
-
-        private static void PopulateDummyTroops(ClientAvatar avatar, int th)
-        {
-            try
-            {
-                var charTable = CSVManager.DataTables.GetTable(3);
-                if (charTable != null)
-                {
-                    for (int i = 0; i < charTable.GetItemCount(); i++)
-                    {
-                        var cd = (CharacterData)charTable.GetItemAt(i);
-                        if (cd != null)
-                        {
-                            int maxLvl = cd.GetUpgradeLevelCount();
-                            if (maxLvl > 0)
-                            {
-                                int lvl = Math.Min(maxLvl - 1, Math.Max(0, th - 4));
-                                avatar.SetUnitUpgradeLevel(cd, lvl);
-                            }
-                        }
-                    }
-                }
-
-                var spellTable = CSVManager.DataTables.GetTable(25);
-                if (spellTable != null)
-                {
-                    for (int i = 0; i < spellTable.GetItemCount(); i++)
-                    {
-                        var sd = (SpellData)spellTable.GetItemAt(i);
-                        if (sd != null)
-                        {
-                            int maxLvl = sd.GetUpgradeLevelCount();
-                            if (maxLvl > 0)
-                            {
-                                int lvl = Math.Min(maxLvl - 1, Math.Max(0, th - 5));
-                                avatar.SetUnitUpgradeLevel(sd, lvl);
-                            }
-                        }
-                    }
-                }
-
-                if (th >= 7)
-                {
-                    var heroTable = CSVManager.DataTables.GetTable(27);
-                    if (heroTable != null)
-                    {
-                        for (int i = 0; i < heroTable.GetItemCount(); i++)
-                        {
-                            var hd = (HeroData)heroTable.GetItemAt(i);
-                            if (hd != null)
-                            {
-                                int heroMax = (i == 0) ? (th >= 9 ? 30 : 10) : ((i == 1 && th >= 9) ? 30 : 0);
-                                if (heroMax > 0)
-                                {
-                                    avatar.SetUnitUpgradeLevel(hd, heroMax - 1);
-                                    avatar.SetHeroHealth(hd, 0);
-                                    avatar.SetHeroState(hd, 3);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception) { }
         }
 
         internal static Level GetWarMemberAsLevel(long userId)
@@ -1706,95 +1521,19 @@ namespace CSS.Logic
             foreach (var war in Wars.Values)
             {
                 var member = war.GetMember(userId);
-                if (member != null)
+                if (member != null && !string.IsNullOrEmpty(member.VillageJson))
                 {
-                    return CreateDummyLevel(member.UserId, member.ClanId, member.Name, member.TownHallLevel);
+                    Level lvl = new Level(member.UserId);
+                    lvl.LoadFromJSON(member.VillageJson);
+                    lvl.Avatar.UserId = member.UserId;
+                    lvl.Avatar.CurrentHomeId = member.UserId;
+                    lvl.Avatar.AvatarName = member.Name;
+                    lvl.Avatar.m_vTownHallLevel = member.TownHallLevel;
+                    lvl.Avatar.AllianceId = member.ClanId;
+                    return lvl;
                 }
             }
             return null;
-        }
-
-        public static ClanWarMember CreatePresetWarMember(long clanId, int pos, int th, string name)
-        {
-            long dummyId = ObjectManager.GeneratePlayerId();
-            Level dummyLevel = CreateDummyLevel(dummyId, clanId, name, th, 1);
-            return new ClanWarMember(dummyLevel.Avatar, pos, clanId)
-            {
-                VillageJson = dummyLevel.SaveToJSON()
-            };
-        }
-
-        private static WarClan GenerateAIOpponentClan(int teamSize, int avgTh = 9)
-        {
-            long aiClanId = ObjectManager.GenerateAllianceId();
-            string[] names = { "Shadow Legion", "Goblin Horde", "Valkyrie Storm", "Dragon Slayers", "P.E.K.K.A Force", "Clash Kings", "Titan Empire", "Dark Knights" };
-            string chosenName = names[new Random().Next(0, names.Length)];
-            string[] enemyNames = { "Warlord", "Vortex", "FrostBite", "Ghost", "Inferno", "NightCrawler", "Havoc", "Razor", "StormBringer", "DoomHammer", "Venom", "Reaper", "Oblivion", "Spectre", "Cobra" };
-
-            var aiClan = new WarClan
-            {
-                ClanId = aiClanId,
-                ClanName = chosenName,
-                ClanBadge = 0x5B002B54,
-                ClanLevel = Math.Max(1, avgTh - 3),
-                Members = new List<ClanWarMember>()
-            };
-
-            var aiAlliance = new Alliance(aiClanId)
-            {
-                m_vAllianceName = chosenName,
-                m_vAllianceBadgeData = 0x5B002B54,
-                m_vAllianceLevel = Math.Max(1, avgTh - 3),
-                m_vAllianceType = 0,
-                m_vAllianceDescription = $"Official {chosenName} Clan. Ready for war!",
-                m_vWarFrequency = 1,
-                m_vWonWars = new Random().Next(15, 60),
-                m_vLostWars = new Random().Next(5, 25),
-                m_vDrawWars = new Random().Next(0, 5),
-                m_vWarLogPublic = 1
-            };
-
-            int totalScore = 0;
-            for (int i = 0; i < teamSize; i++)
-            {
-                int th = Math.Max(5, Math.Min(11, avgTh - (i * 3 / teamSize)));
-                string name = enemyNames[i % enemyNames.Length];
-                int role = (i == 0) ? 2 : (i == 1 ? 4 : (i < 3 ? 3 : 1));
-                long dummyId = ObjectManager.GeneratePlayerId();
-
-                Level dummyLevel = CreateDummyLevel(dummyId, aiClanId, name, th, role);
-                totalScore += dummyLevel.Avatar.GetScore();
-
-                aiAlliance.AddAllianceMember(new AllianceMemberEntry(dummyId)
-                {
-                    Role = role,
-                    WarOptInStatus = 1,
-                    Order = i + 1,
-                    PreviousOrder = i + 1
-                });
-
-                var warMember = new ClanWarMember(dummyLevel.Avatar, i, aiClanId)
-                {
-                    VillageJson = dummyLevel.SaveToJSON()
-                };
-                aiClan.Members.Add(warMember);
-            }
-
-            aiAlliance.m_vScore = totalScore / 2;
-            ResourcesManager.AddAllianceInMemory(aiAlliance);
-            try
-            {
-                Resources.DatabaseManager.Save(aiAlliance);
-            }
-            catch (Exception) { }
-
-            aiClan.Members = aiClan.Members.OrderByDescending(m => m.TownHallLevel).ThenByDescending(m => m.DefenceWeight).ToList();
-            for (int i = 0; i < aiClan.Members.Count; i++)
-            {
-                aiClan.Members[i].MapPosition = i;
-            }
-
-            return aiClan;
         }
 
         public static string GetPresetBase(int thLevel)

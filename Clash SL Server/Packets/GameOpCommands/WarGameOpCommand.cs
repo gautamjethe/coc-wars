@@ -56,7 +56,7 @@ namespace CSS.Packets.GameOpCommands
                     size = parsedSize;
                 }
 
-                await ClanWarManager.StartSearch(alliance, size, timeoutSeconds: 15);
+                await ClanWarManager.StartSearch(alliance, size);
                 SendFeedback(level, $"Searching for a {size}v{size} Clan War opponent... (Cancel anytime with /war cancel)");
                 return;
             }
@@ -117,14 +117,29 @@ namespace CSS.Packets.GameOpCommands
                     else size = 20;
                 }
 
-                var war = await ClanWarManager.StartWar(alliance, null, size);
-                if (war != null)
+                // If opponent clan ID is specified: /war start <size> <opponentClanId>
+                Alliance opponentClan = null;
+                if (m_vArgs.Length >= 4 && long.TryParse(m_vArgs[3], out long oppClanId))
                 {
-                    SendFeedback(level, $"Clan War started successfully! War ID: {war.WarId}, Size: {war.WarSize}v{war.WarSize}.\nPreparation Day is now active.");
+                    opponentClan = ObjectManager.GetAlliance(oppClanId);
+                }
+
+                if (opponentClan != null)
+                {
+                    var war = await ClanWarManager.StartWar(alliance, opponentClan, size);
+                    if (war != null)
+                    {
+                        SendFeedback(level, $"Clan War started between '{alliance.m_vAllianceName}' and '{opponentClan.m_vAllianceName}'! War ID: {war.WarId}, Size: {war.WarSize}v{war.WarSize}.");
+                    }
+                    else
+                    {
+                        SendFeedback(level, "Failed to start Clan War between the two clans.");
+                    }
                 }
                 else
                 {
-                    SendFeedback(level, "Failed to start Clan War.");
+                    await ClanWarManager.StartSearch(alliance, size);
+                    SendFeedback(level, $"Clan War matchmaking search started for {size}v{size}. Searching for another real clan...");
                 }
                 return;
             }

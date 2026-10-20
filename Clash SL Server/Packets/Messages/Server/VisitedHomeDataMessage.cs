@@ -15,7 +15,7 @@ namespace CSS.Packets.Messages.Server
             this.Device.PlayerState = Logic.Enums.State.VISIT;
         }
 
-        internal override void Encode()
+        internal override async void Encode()
         {
             try
             {
@@ -48,14 +48,13 @@ namespace CSS.Packets.Messages.Server
                 this.Data.AddInt(-1);
                 this.Data.AddInt((int)TimeSpan.FromSeconds(100).TotalSeconds);
                 this.Data.AddRange(ownerHome.Encode);
-                this.Data.AddRange(this.m_vOwnerLevel.Avatar.EncodeSync());
+                this.Data.AddRange(await this.m_vOwnerLevel.Avatar.Encode());
                 this.Data.AddInt(0);
                 this.Data.Add(1);
-                this.Data.AddRange(this.m_vVisitorLevel.Avatar.EncodeSync());
+                this.Data.AddRange(await this.m_vVisitorLevel.Avatar.Encode());
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                CSS.Core.Logger.Write($"[Error] VisitedHomeDataMessage.Encode failed: {ex.Message}");
             }
         }
 

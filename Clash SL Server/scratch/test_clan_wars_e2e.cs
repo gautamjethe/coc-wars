@@ -80,7 +80,7 @@ namespace CSS.Test
             }
 
             Console.WriteLine("[3/14] Testing War Search & Cancellation...");
-            await ClanWarManager.StartSearch(clanA, 5, timeoutSeconds: 60);
+            await ClanWarManager.StartSearch(clanA, 5);
             if (!ClanWarManager.IsClanSearching(clanA.m_vAllianceId))
                 throw new Exception("Expected Clan A to be in Searching state!");
             if (ClanWarManager.GetClanWarState(clanA.m_vAllianceId) != ClanWarState.SEARCHING)
@@ -107,8 +107,8 @@ namespace CSS.Test
             Console.WriteLine("       Search cancellation successfully tested.");
 
             Console.WriteLine("[4/14] Testing Clan-vs-Clan Real Matchmaking (Clan A vs Clan B)...");
-            await ClanWarManager.StartSearch(clanA, 5, timeoutSeconds: 60);
-            await ClanWarManager.StartSearch(clanB, 5, timeoutSeconds: 60);
+            await ClanWarManager.StartSearch(clanA, 5);
+            await ClanWarManager.StartSearch(clanB, 5);
 
             var matchedWar = ClanWarManager.GetWarByClanId(clanA.m_vAllianceId);
             if (matchedWar == null) throw new Exception("Expected matched war between Clan A and Clan B!");
@@ -242,18 +242,17 @@ namespace CSS.Test
                 clanC.AddAllianceMember(new AllianceMemberEntry(pid) { Role = i == 1 ? 2 : 1, WarOptInStatus = 1 });
             }
 
-            // Start search with 1 second timeout
-            await ClanWarManager.StartSearch(clanC, 5, timeoutSeconds: 1);
-            await Task.Delay(1500); // Wait for timeout
-            // Force tick to trigger timeout
+            // Start search and verify no AI opponent is created
+            await ClanWarManager.StartSearch(clanC, 5);
+            // Force tick to test matchmaking
             typeof(ClanWarManager).GetMethod("OnTick", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
                 .Invoke(null, new object[] { null });
 
             var aiWar = ClanWarManager.GetWarByClanId(7003);
-            if (aiWar == null) throw new Exception("Expected AI Opponent war to be created after search timeout!");
-            if (aiWar.Clan2 == null || aiWar.Clan2.Members.Count != 5)
-                throw new Exception("Expected AI Opponent Clan with 5 members!");
-            Console.WriteLine($"       AI Opponent Matchmaking on timeout successfully created War #{aiWar.WarId}: '{aiWar.Clan1.ClanName}' vs '{aiWar.Clan2.ClanName}'");
+            if (aiWar != null) throw new Exception("Expected NO AI Opponent war to be created! AI wars must be disabled.");
+            if (!ClanWarManager.IsClanSearching(7003))
+                throw new Exception("Expected clanC to still be searching for a real clan!");
+            Console.WriteLine("       Real-Clan-Only Matchmaking verified: clanC remains in search queue and NO AI opponent was generated.");
         }
     }
 }

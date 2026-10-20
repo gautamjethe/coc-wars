@@ -12,7 +12,7 @@
   "buildings": [
     {
       "data": 1000001,
-      "lvl": 0,
+      "lvl": 1,
       "x": 21,
       "y": 20
     },
@@ -84,12 +84,9 @@
       }
     }
   ],
-  "obstacles": [
-  ],
-  "traps": [
-  ],
-  "decos": [
-  ],
+  "obstacles": [],
+  "traps": [],
+  "decos": [],
   "respawnVars": {
     "secondsFromLastRespawn": 195,
     "respawnSeed": -212853765,
@@ -99,8 +96,7 @@
     "time_to_special_drop": 248205,
     "time_to_special_period": 97079
   },
-  "cooldowns": [
-  ],
+  "cooldowns": [],
   "newShopBuildings": [
     1,
     0,

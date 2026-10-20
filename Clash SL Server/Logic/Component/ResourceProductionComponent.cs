@@ -10,9 +10,7 @@ namespace CSS.Logic
     {
         public ResourceProductionComponent(ConstructionItem ci, Level level) : base(ci)
         {
-            m_vTimeSinceLastClick = (level?.Avatar != null && level.Avatar.LastTickSaved > new DateTime(2010, 1, 1))
-                ? level.Avatar.LastTickSaved
-                : DateTime.UtcNow;
+            m_vTimeSinceLastClick = level.Avatar.LastTickSaved;
             m_vProductionResourceData =
            CSVManager.DataTables.GetResourceByName(((BuildingData) ci.GetData()).ProducesResource);
             m_vResourcesPerHour = ((BuildingData) ci.GetData()).ResourcePerHour;
@@ -29,28 +27,23 @@ namespace CSS.Logic
         public void CollectResources()
         {
             var ci = (ConstructionItem) GetParent();
-            var now = ci.Avatar?.Avatar?.LastTickSaved ?? DateTime.UtcNow;
-            if (m_vTimeSinceLastClick < new DateTime(2010, 1, 1))
-            {
-                m_vTimeSinceLastClick = now;
-            }
-            var span = now - m_vTimeSinceLastClick;
+            var span = ci.Avatar.Avatar.LastTickSaved - m_vTimeSinceLastClick;
             float currentResources = 0;
             if (!ci.IsBoosted)
             {
-                currentResources = m_vResourcesPerHour[ci.UpgradeLevel] / (60f * 60f) * (float) Math.Max(0, span.TotalSeconds);
+                currentResources = m_vResourcesPerHour[ci.UpgradeLevel] / (60f * 60f) * (float) span.TotalSeconds;
             }
             else
             {
-                if (ci.GetBoostEndTime() >= now)
+                if (ci.GetBoostEndTime() >= ci.Avatar.Avatar.LastTickSaved)
                 {
-                    currentResources = m_vResourcesPerHour[ci.UpgradeLevel] / (60f * 60f) * (float) Math.Max(0, span.TotalSeconds);
+                    currentResources = m_vResourcesPerHour[ci.UpgradeLevel] / (60f * 60f) * (float) span.TotalSeconds;
                     currentResources *= ci.GetBoostMultipier();
                 }
                 else
                 {
-                    var boostedTime = (float) Math.Max(0, span.TotalSeconds) - (float) (now - ci.GetBoostEndTime()).TotalSeconds;
-                    var notBoostedTime = (float) Math.Max(0, span.TotalSeconds) - boostedTime;
+                    var boostedTime = (float) span.TotalSeconds - (float) (ci.Avatar.Avatar.LastTickSaved - ci.GetBoostEndTime()).TotalSeconds;
+                    var notBoostedTime = (float) span.TotalSeconds - boostedTime;
                     currentResources = m_vResourcesPerHour[ci.UpgradeLevel] / (60f * 60f) * notBoostedTime;
                     currentResources += m_vResourcesPerHour[ci.UpgradeLevel] / (60f * 60f) * boostedTime * ci.GetBoostMultipier();
                     ci.IsBoosted = false;
@@ -86,69 +79,42 @@ namespace CSS.Logic
         public override void Load(JObject jsonObject)
         {
             var productionObject = (JObject) jsonObject["production"];
-            if (productionObject != null && productionObject["t_lastClick"] != null)
+            if (productionObject != null)
             {
-                try
-                {
-                    m_vTimeSinceLastClick = productionObject["t_lastClick"].ToObject<DateTime>();
-                }
-                catch
-                {
-                    m_vTimeSinceLastClick = DateTime.UtcNow;
-                }
-            }
-            if (m_vTimeSinceLastClick <= DateTime.MinValue || m_vTimeSinceLastClick < new DateTime(2010, 1, 1))
-            {
-                m_vTimeSinceLastClick = DateTime.UtcNow;
+                m_vTimeSinceLastClick = productionObject["t_lastClick"].ToObject<DateTime>();
             }
         }
 
         public void Reset()
         {
-            m_vTimeSinceLastClick = GetParent().Avatar?.Avatar?.LastTickSaved ?? DateTime.UtcNow;
+            m_vTimeSinceLastClick = GetParent().Avatar.Avatar.LastTickSaved;
         }
 
         public override JObject Save(JObject jsonObject)
         {
-            var ci = (ConstructionItem) GetParent();
-            if (ci.GetUpgradeLevel() != -1)
+            if (((ConstructionItem) GetParent()).GetUpgradeLevel() != -1)
             {
-                if (m_vTimeSinceLastClick <= DateTime.MinValue || m_vTimeSinceLastClick < new DateTime(2010, 1, 1))
-                {
-                    m_vTimeSinceLastClick = DateTime.UtcNow;
-                }
-                var now = ci.Avatar?.Avatar?.LastTickSaved ?? DateTime.UtcNow;
-                if (now <= DateTime.MinValue || now < new DateTime(2010, 1, 1))
-                {
-                    now = DateTime.UtcNow;
-                }
-
                 var productionObject = new JObject();
                 productionObject.Add("t_lastClick", m_vTimeSinceLastClick);
                 jsonObject.Add("production", productionObject);
-
-                var seconds = Math.Max(0f, (float) (now - m_vTimeSinceLastClick).TotalSeconds);
+                var ci = (ConstructionItem) GetParent();
+                var seconds = (float) (GetParent().Avatar.Avatar.LastTickSaved - m_vTimeSinceLastClick).TotalSeconds;
                 if (ci.IsBoosted)
                 {
-                    if (ci.GetBoostEndTime() >= now)
+                    if (ci.GetBoostEndTime() >= ci.Avatar.Avatar.LastTickSaved)
                     {
                         seconds *= ci.GetBoostMultipier();
                     }
                     else
                     {
-                        var boostedTime = Math.Max(0f, seconds - (float) (now - ci.GetBoostEndTime()).TotalSeconds);
+                        var boostedTime = seconds - (float) (ci.Avatar.Avatar.LastTickSaved - ci.GetBoostEndTime()).TotalSeconds;
                         var notBoostedTime = seconds - boostedTime;
                         seconds = boostedTime * ci.GetBoostMultipier() + notBoostedTime;
                     }
                 }
-
-                int lvl = Math.Max(0, Math.Min(ci.GetUpgradeLevel(), m_vMaxResources.Count - 1));
-                float maxRes = m_vMaxResources[lvl];
-                float resPerHour = Math.Max(1f, (float) m_vResourcesPerHour[lvl]);
-                float totalProdTime = (maxRes / resPerHour) * 3600f;
-                int resTime = Math.Max(0, (int) (totalProdTime - seconds));
-
-                jsonObject.Add("res_time", resTime);
+                jsonObject.Add("res_time", (int)
+                        (m_vMaxResources[ci.GetUpgradeLevel()] / (float) m_vResourcesPerHour[ci.GetUpgradeLevel()] * 3600f -
+                         seconds));
             }
             return jsonObject;
         }

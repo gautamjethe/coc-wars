@@ -2,6 +2,31 @@
   "events": [
     {
       "id": 1,
+      "name": "Halloween Event",
+      "boomboxEntry": "Halloween",
+      "eventEntryName": "Halloween",
+      "inboxEntryId": 1,
+      "visibleTime": "20261019T000000.000Z",
+      "startTime": "20261019T183000.000Z",
+      "endTime": "20261025T183000.000Z",
+      "showUpcoming": 0,
+      "functions": [
+        {
+          "name": "EnableTrap",
+          "parameters": [
+            "12000003"
+          ]
+        },
+        {
+          "name": "SpellBrewingBoost",
+          "parameters": [
+            "1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
       "name": "4x Star Bonus",
       "boomboxEntry": "StarBonus",
       "eventEntryName": "StarBonus",
@@ -15,6 +40,26 @@
           "name": "StarBonusMultiplier",
           "parameters": [
             "4"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Valkyrie Event",
+      "boomboxEntry": "TroopDiscountWitch",
+      "eventEntryName": "TroopDiscountWitch",
+      "inboxEntryId": 1,
+      "visibleTime": "20261019T000000.000Z",
+      "startTime": "20261022T183000.000Z",
+      "endTime": "20261028T183000.000Z",
+      "showUpcoming": 1,
+      "functions": [
+        {
+          "name": "TroopDiscount",
+          "parameters": [
+            "4000012",
+            "50"
           ]
         }
       ]

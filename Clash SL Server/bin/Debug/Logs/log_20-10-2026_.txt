@@ -1,0 +1,2 @@
+[LOG]  20-10-2026 18:34:13  [Error] ClanWarManager.LoadState error: Error reading JObject from JsonReader. Current JsonReader item is not an object: StartArray. Path '', line 1, position 1.
+[LOG]  20-10-2026 18:34:15  [Error] ClanWarManager.LoadState error: Error reading JObject from JsonReader. Current JsonReader item is not an object: StartArray. Path '', line 1, position 1.
