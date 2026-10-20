@@ -92,7 +92,12 @@ namespace CSS.Core
             }
             pl = new Level(seed, token);
             m_vAvatarSeed++;
+            pl.Avatar.LastTickSaved = DateTime.UtcNow;
+            pl.Avatar.m_vAccountCreationDate = DateTime.UtcNow;
+            pl.Avatar.TutorialStepsCount = 13;
+            pl.Avatar.AvatarName = "Chief";
             pl.LoadFromJSON(m_vHomeDefault);
+            pl.Tick();
             m_vDatabase.CreateAccount(pl);
             return pl;
         }
