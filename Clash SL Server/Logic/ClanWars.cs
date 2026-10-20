@@ -928,14 +928,12 @@ namespace CSS.Logic
             };
 
             // Notify online members of search state
-            foreach (var mem in clan.GetAllianceMembers())
+            foreach (var client in ResourcesManager.GetConnectedClients())
             {
-                var player = await ResourcesManager.GetPlayer(mem.AvatarId);
-                if (player?.Client != null)
+                if (client?.Player?.Avatar?.AllianceId == clanId)
                 {
-                    new AllianceFullEntryMessage(player.Client, clan).Send();
-                    new AllianceWarDataMessage(player.Client).Send();
-                    new AllianceWarMapDataMessage(player.Client).Send();
+                    new AllianceFullEntryMessage(client, clan).Send();
+                    new AllianceWarDataMessage(client).Send();
                 }
             }
 
@@ -960,26 +958,24 @@ namespace CSS.Logic
             }
         }
 
-        public static async void CancelSearch(long clanId)
+        public static void CancelSearch(long clanId)
         {
-            if (SearchingClans.TryRemove(clanId, out _))
+            SearchingClans.TryRemove(clanId, out _);
+
+            Alliance clan = ObjectManager.GetAlliance(clanId);
+            if (clan != null)
             {
-                Alliance clan = ObjectManager.GetAlliance(clanId);
-                if (clan != null)
+                clan.m_vWarState = (int)ClanWarState.NOT_IN_WAR;
+                foreach (var client in ResourcesManager.GetConnectedClients())
                 {
-                    clan.m_vWarState = (int)ClanWarState.NOT_IN_WAR;
-                    foreach (var mem in clan.GetAllianceMembers())
+                    if (client?.Player?.Avatar?.AllianceId == clanId)
                     {
-                        var player = await ResourcesManager.GetPlayer(mem.AvatarId);
-                        if (player?.Client != null)
-                        {
-                            new AllianceFullEntryMessage(player.Client, clan).Send();
-                            new AllianceWarDataMessage(player.Client).Send();
-                            new AllianceWarMapDataMessage(player.Client).Send();
-                        }
+                        client.PlayerState = Enums.State.LOGGED;
+                        new AllianceFullEntryMessage(client, clan).Send();
+                        new AllianceWarDataMessage(client).Send();
                     }
-                    Logger.Say($"Clan '{clan.m_vAllianceName}' cancelled Clan War matchmaking search.");
                 }
+                Logger.Say($"Clan '{clan.m_vAllianceName}' cancelled Clan War matchmaking search.");
             }
         }
 

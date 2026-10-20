@@ -111,19 +111,13 @@ namespace CSS.Packets.Commands.Client
                     // Clan is in matchmaking search queue
                     new AllianceFullEntryMessage(this.Device, clan).Send();
                     new AllianceWarDataMessage(this.Device).Send();
-                    new AllianceWarMapDataMessage(this.Device).Send();
 
-                    foreach (AllianceMemberEntry a in clan.GetAllianceMembers())
+                    foreach (var client in ResourcesManager.GetConnectedClients())
                     {
-                        if (a.AvatarId != this.Device?.Player?.Avatar?.UserId)
+                        if (client != this.Device && client?.Player?.Avatar?.AllianceId == clanId)
                         {
-                            Level l = await ResourcesManager.GetPlayer(a.AvatarId);
-                            if (l?.Client != null)
-                            {
-                                new AllianceFullEntryMessage(l.Client, clan).Send();
-                                new AllianceWarDataMessage(l.Client).Send();
-                                new AllianceWarMapDataMessage(l.Client).Send();
-                            }
+                            new AllianceFullEntryMessage(client, clan).Send();
+                            new AllianceWarDataMessage(client).Send();
                         }
                     }
                 }

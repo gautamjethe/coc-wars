@@ -203,7 +203,7 @@ namespace CSS.Packets.Messages.Server
             this.Data.AddInt(0);
             this.Data.AddInt(0); // 0 members
 
-            // Separator
+            // Clan 1 Tail
             this.Data.Add((byte)1);
             this.Data.Add((byte)1);
             this.Data.AddInt(-1);
@@ -213,32 +213,21 @@ namespace CSS.Packets.Messages.Server
             this.Data.AddInt(50);
             this.Data.AddInt(40);
             this.Data.AddInt(60);
-            this.Data.Add((byte)1);
 
-            // Clan 2 Header
-            this.Data.AddLong(0);
-            this.Data.AddString("Enemy Clan");
-            this.Data.AddInt(0);
-            this.Data.AddInt(1);
-            this.Data.AddInt(0);
+            // Clan 2 Boolean: 0 (No enemy clan)
+            this.Data.Add((byte)0);
+
+            // WarId Boolean: 0 (No active war id)
+            this.Data.Add((byte)0);
+
+            // Unknown Int
             this.Data.AddInt(0);
 
-            // Tail
-            this.Data.Add((byte)1);
-            this.Data.Add((byte)1);
-            this.Data.AddInt(-1);
-            this.Data.AddInt(1);
+            // Enemy ClanId Boolean: 0
+            this.Data.Add((byte)0);
+
+            // Attack logs count: 0
             this.Data.AddInt(0);
-            this.Data.AddInt(25);
-            this.Data.AddInt(50);
-            this.Data.AddInt(40);
-            this.Data.AddInt(60);
-            this.Data.Add((byte)1);
-            this.Data.AddLong(0);
-            this.Data.AddInt(0);
-            this.Data.Add((byte)1);
-            this.Data.AddLong(0);
-            this.Data.AddInt(0); // 0 attacks
         }
     }
 }

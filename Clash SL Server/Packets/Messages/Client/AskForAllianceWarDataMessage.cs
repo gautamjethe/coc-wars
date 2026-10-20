@@ -55,15 +55,6 @@ namespace CSS.Packets.Messages.Client
                 }
 
                 new AllianceWarDataMessage(this.Device, war).Send();
-
-                if (war != null)
-                {
-                    new AllianceWarMapDataMessage(this.Device, war).Send();
-                }
-                else
-                {
-                    new AllianceWarMapDataMessage(this.Device).Send();
-                }
             }
             catch (Exception ex)
             {

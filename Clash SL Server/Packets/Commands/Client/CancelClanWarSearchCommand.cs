@@ -46,6 +46,13 @@ namespace CSS.Packets.Commands.Client
                 }
 
                 ClanWarManager.CancelSearch(clanId);
+
+                if (this.Device != null)
+                {
+                    this.Device.PlayerState = CSS.Logic.Enums.State.LOGGED;
+                    new AllianceFullEntryMessage(this.Device, clan).Send();
+                    new AllianceWarDataMessage(this.Device).Send();
+                }
             }
             catch (Exception ex)
             {
