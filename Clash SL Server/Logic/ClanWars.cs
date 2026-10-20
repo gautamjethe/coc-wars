@@ -1103,11 +1103,21 @@ namespace CSS.Logic
         {
             if (war.Clan1 != null)
             {
-                ObjectManager.GetAlliance(war.Clan1.ClanId);
+                var a1 = ObjectManager.GetAlliance(war.Clan1.ClanId);
+                if (a1 != null)
+                {
+                    a1.m_vWarState = (int)war.State;
+                    a1.m_vActiveWarId = war.WarId;
+                }
             }
             if (war.Clan2 != null)
             {
-                ObjectManager.GetAlliance(war.Clan2.ClanId);
+                var a2 = ObjectManager.GetAlliance(war.Clan2.ClanId);
+                if (a2 != null)
+                {
+                    a2.m_vWarState = (int)war.State;
+                    a2.m_vActiveWarId = war.WarId;
+                }
             }
         }
 
