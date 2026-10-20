@@ -1633,12 +1633,6 @@ namespace CSS.Logic
             PopulateDummyTroops(dummyLevel.Avatar, th);
 
             ResourcesManager.LoadLevel(dummyLevel);
-            try
-            {
-                Resources.DatabaseManager.Save(dummyLevel);
-            }
-            catch (Exception) { }
-
             return dummyLevel;
         }
 
