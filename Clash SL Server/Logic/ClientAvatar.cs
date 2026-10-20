@@ -44,11 +44,11 @@ namespace CSS.Logic
         internal int m_vReceived;
 
         // UInt
-        internal uint TutorialStepsCount    = 0x0D;
+        internal uint TutorialStepsCount    = 0x0A;
 
         // Byte
-        internal byte m_vNameChangingLeft   = 0x01;
-        internal byte m_vnameChosenByUser   = 0x01;
+        internal byte m_vNameChangingLeft   = 0x02;
+        internal byte m_vnameChosenByUser   = 0x00;
         internal byte AccountPrivileges     = 0x00;
         // String
         internal string AvatarName;
@@ -84,8 +84,8 @@ namespace CSS.Logic
             QuickTrain3          = new List<DataSlot>();
             LastTickSaved        = DateTime.UtcNow;
             m_vAccountCreationDate = DateTime.UtcNow;
-            TutorialStepsCount   = 0x0D;
-            AvatarName           = "Chief";
+            TutorialStepsCount   = 0x0A;
+            AvatarName           = "NoNameYet";
         }
 
         public ClientAvatar(long id, string token) : this()
@@ -107,12 +107,12 @@ namespace CSS.Logic
             this.m_vExperience = ToInt32(AppSettings["startingLevel"]);
             this.m_vTrophy            = AppSettings["startingTrophies"] == "random" ? rnd.Next(1500, 4999) : ToInt32(AppSettings["startingTrophies"]);
 
-            this.AvatarName          = "Chief";
-            this.TutorialStepsCount  = 0x0D;
+            this.AvatarName          = "NoNameYet";
+            this.TutorialStepsCount  = 0x0A;
             this.LastTickSaved       = DateTime.UtcNow;
             this.m_vAccountCreationDate = DateTime.UtcNow;
-            this.m_vnameChosenByUser = 0x01;
-            this.m_vNameChangingLeft = 0x01;
+            this.m_vnameChosenByUser = 0x00;
+            this.m_vNameChangingLeft = 0x02;
 
             SetResourceCount(CSVManager.DataTables.GetResourceByName("Gold"), ToInt32(AppSettings["startingGold"]));
             SetResourceCount(CSVManager.DataTables.GetResourceByName("Elixir"), ToInt32(AppSettings["startingElixir"]));
@@ -576,7 +576,7 @@ namespace CSS.Logic
                 ds.Load(data);
                 AllianceUnits.Add(ds);
             }
-            TutorialStepsCount = Math.Max(13u, jsonObject["tutorial_step"] != null ? jsonObject["tutorial_step"].ToObject<uint>() : 13u);
+            TutorialStepsCount = jsonObject["tutorial_step"] != null ? jsonObject["tutorial_step"].ToObject<uint>() : 0x0Au;
 
             JArray jsonAchievementsProgress = (JArray) jsonObject["achievements_progress"];
             foreach (JObject data in jsonAchievementsProgress)
@@ -822,6 +822,7 @@ namespace CSS.Logic
             {
                 m_vNameChangingLeft = 0x02;
             }
+            this.m_vnameChosenByUser = 0x01;
             TutorialStepsCount = 0x0D;
         }
 

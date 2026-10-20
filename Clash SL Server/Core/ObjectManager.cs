@@ -120,14 +120,7 @@ namespace CSS.Core
                 seed = GeneratePlayerId();
             }
             pl = new Level(seed, token);
-            pl.Avatar.LastTickSaved = DateTime.UtcNow;
-            pl.Avatar.m_vAccountCreationDate = DateTime.UtcNow;
-            pl.Avatar.TutorialStepsCount = 13;
-            pl.Avatar.AvatarName = "Chief";
-            pl.Avatar.m_vnameChosenByUser = 0x01;
-            pl.Avatar.m_vNameChangingLeft = 0x01;
             pl.LoadFromJSON(m_vHomeDefault);
-            pl.Tick();
             m_vDatabase.CreateAccount(pl);
             return pl;
         }

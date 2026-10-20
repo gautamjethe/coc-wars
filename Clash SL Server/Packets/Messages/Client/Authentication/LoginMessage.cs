@@ -338,7 +338,7 @@ namespace CSS.Packets.Messages.Client
             }
         }
 
-        private async void NewUser()
+        private void NewUser()
         {
             level = ObjectManager.CreateAvatar(0, null);
             if (string.IsNullOrEmpty(this.level.Avatar.UserToken))
@@ -355,7 +355,7 @@ namespace CSS.Packets.Messages.Client
             level.Avatar.m_vAndroid = this.Android;
 
             Console.WriteLine($"[AUTH] Created new account: PlayerId={level.Avatar.UserId}, Token={level.Avatar.UserToken}");
-            await Resources.DatabaseManager.Save(level);
+            Resources.DatabaseManager.Save(level).Wait();
             LogUser();
         }
     }
