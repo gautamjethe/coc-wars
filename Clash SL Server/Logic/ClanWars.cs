@@ -1106,9 +1106,13 @@ namespace CSS.Logic
             {
                 foreach (var m in war.Clan1.Members)
                 {
-                    if (m.UserId > 10000000 && !ResourcesManager.m_vInMemoryLevels.ContainsKey(m.UserId))
+                    if (!ResourcesManager.m_vInMemoryLevels.ContainsKey(m.UserId))
                     {
-                        CreateDummyLevel(m.UserId, m.ClanId, m.Name, m.TownHallLevel);
+                        var p = ResourcesManager.GetPlayer(m.UserId).Result;
+                        if (p == null)
+                        {
+                            CreateDummyLevel(m.UserId, m.ClanId, m.Name, m.TownHallLevel);
+                        }
                     }
                 }
             }
@@ -1116,9 +1120,13 @@ namespace CSS.Logic
             {
                 foreach (var m in war.Clan2.Members)
                 {
-                    if (m.UserId > 10000000 && !ResourcesManager.m_vInMemoryLevels.ContainsKey(m.UserId))
+                    if (!ResourcesManager.m_vInMemoryLevels.ContainsKey(m.UserId))
                     {
-                        CreateDummyLevel(m.UserId, m.ClanId, m.Name, m.TownHallLevel);
+                        var p = ResourcesManager.GetPlayer(m.UserId).Result;
+                        if (p == null)
+                        {
+                            CreateDummyLevel(m.UserId, m.ClanId, m.Name, m.TownHallLevel);
+                        }
                     }
                 }
 
@@ -1478,7 +1486,7 @@ namespace CSS.Logic
             while (war.Clan1.Members.Count < teamSize)
             {
                 int dummyPos = war.Clan1.Members.Count;
-                long dummyId = clan1.m_vAllianceId * 1000 + dummyPos + 1;
+                long dummyId = ObjectManager.GeneratePlayerId();
                 string dummyName = friendlyNames[dummyPos % friendlyNames.Length];
                 int th = Math.Max(5, Math.Min(11, clan1BaseTh - (dummyPos * 3 / teamSize)));
 
@@ -1539,7 +1547,7 @@ namespace CSS.Logic
                 while (war.Clan2.Members.Count < teamSize)
                 {
                     int dummyPos = war.Clan2.Members.Count;
-                    long dummyId = clan2.m_vAllianceId * 1000 + dummyPos + 1;
+                    long dummyId = ObjectManager.GeneratePlayerId();
                     string dummyName = friendlyNames[dummyPos % friendlyNames.Length];
                     int th = Math.Max(5, Math.Min(11, clan2BaseTh - (dummyPos * 3 / teamSize)));
 
@@ -1620,6 +1628,9 @@ namespace CSS.Logic
             dummyLevel.Avatar.m_vLeagueId = (byte)(th >= 11 ? 16 : (th >= 9 ? 13 : (th >= 7 ? 10 : 7)));
             dummyLevel.Avatar.m_vDonated = 150 + th * 20;
             dummyLevel.Avatar.m_vReceived = 100 + th * 15;
+            dummyLevel.Avatar.TutorialStepsCount = 13;
+
+            PopulateDummyTroops(dummyLevel.Avatar, th);
 
             ResourcesManager.LoadLevel(dummyLevel);
             try
@@ -1629,6 +1640,71 @@ namespace CSS.Logic
             catch (Exception) { }
 
             return dummyLevel;
+        }
+
+        private static void PopulateDummyTroops(ClientAvatar avatar, int th)
+        {
+            try
+            {
+                var charTable = CSVManager.DataTables.GetTable(3);
+                if (charTable != null)
+                {
+                    for (int i = 0; i < charTable.GetItemCount(); i++)
+                    {
+                        var cd = (CharacterData)charTable.GetItemAt(i);
+                        if (cd != null)
+                        {
+                            int maxLvl = cd.GetUpgradeLevelCount();
+                            if (maxLvl > 0)
+                            {
+                                int lvl = Math.Min(maxLvl - 1, Math.Max(0, th - 4));
+                                avatar.SetUnitUpgradeLevel(cd, lvl);
+                            }
+                        }
+                    }
+                }
+
+                var spellTable = CSVManager.DataTables.GetTable(25);
+                if (spellTable != null)
+                {
+                    for (int i = 0; i < spellTable.GetItemCount(); i++)
+                    {
+                        var sd = (SpellData)spellTable.GetItemAt(i);
+                        if (sd != null)
+                        {
+                            int maxLvl = sd.GetUpgradeLevelCount();
+                            if (maxLvl > 0)
+                            {
+                                int lvl = Math.Min(maxLvl - 1, Math.Max(0, th - 5));
+                                avatar.SetUnitUpgradeLevel(sd, lvl);
+                            }
+                        }
+                    }
+                }
+
+                if (th >= 7)
+                {
+                    var heroTable = CSVManager.DataTables.GetTable(27);
+                    if (heroTable != null)
+                    {
+                        for (int i = 0; i < heroTable.GetItemCount(); i++)
+                        {
+                            var hd = (HeroData)heroTable.GetItemAt(i);
+                            if (hd != null)
+                            {
+                                int heroMax = (i == 0) ? (th >= 9 ? 30 : 10) : ((i == 1 && th >= 9) ? 30 : 0);
+                                if (heroMax > 0)
+                                {
+                                    avatar.SetUnitUpgradeLevel(hd, heroMax - 1);
+                                    avatar.SetHeroHealth(hd, 0);
+                                    avatar.SetHeroState(hd, 3);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception) { }
         }
 
         internal static Level GetWarMemberAsLevel(long userId)
@@ -1646,7 +1722,7 @@ namespace CSS.Logic
 
         public static ClanWarMember CreatePresetWarMember(long clanId, int pos, int th, string name)
         {
-            long dummyId = clanId * 1000 + pos + 1;
+            long dummyId = ObjectManager.GeneratePlayerId();
             Level dummyLevel = CreateDummyLevel(dummyId, clanId, name, th, 1);
             return new ClanWarMember(dummyLevel.Avatar, pos, clanId)
             {
@@ -1656,7 +1732,7 @@ namespace CSS.Logic
 
         private static WarClan GenerateAIOpponentClan(int teamSize, int avgTh = 9)
         {
-            long aiClanId = 99990000 + new Random().Next(100, 999);
+            long aiClanId = ObjectManager.GenerateAllianceId();
             string[] names = { "Shadow Legion", "Goblin Horde", "Valkyrie Storm", "Dragon Slayers", "P.E.K.K.A Force", "Clash Kings", "Titan Empire", "Dark Knights" };
             string chosenName = names[new Random().Next(0, names.Length)];
             string[] enemyNames = { "Warlord", "Vortex", "FrostBite", "Ghost", "Inferno", "NightCrawler", "Havoc", "Razor", "StormBringer", "DoomHammer", "Venom", "Reaper", "Oblivion", "Spectre", "Cobra" };
@@ -1690,7 +1766,7 @@ namespace CSS.Logic
                 int th = Math.Max(5, Math.Min(11, avgTh - (i * 3 / teamSize)));
                 string name = enemyNames[i % enemyNames.Length];
                 int role = (i == 0) ? 2 : (i == 1 ? 4 : (i < 3 ? 3 : 1));
-                long dummyId = aiClanId * 1000 + i + 1;
+                long dummyId = ObjectManager.GeneratePlayerId();
 
                 Level dummyLevel = CreateDummyLevel(dummyId, aiClanId, name, th, role);
                 totalScore += dummyLevel.Avatar.GetScore();

@@ -69,15 +69,44 @@ namespace CSS.Core
             m_vDatabase.Save(ResourcesManager.GetInMemoryAlliances(), Save.Mysql).Wait();
         }
 
+        public static long GeneratePlayerId()
+        {
+            lock (typeof(ObjectManager))
+            {
+                if (m_vAvatarSeed <= 0)
+                {
+                    var db = m_vDatabase ?? Resources.DatabaseManager ?? new DatabaseManager();
+                    m_vAvatarSeed = db.GetMaxPlayerId() + 1;
+                }
+                long nextId = m_vAvatarSeed;
+                m_vAvatarSeed++;
+                return nextId;
+            }
+        }
+
+        public static long GenerateAllianceId()
+        {
+            lock (typeof(ObjectManager))
+            {
+                if (m_vAllianceSeed <= 0)
+                {
+                    var db = m_vDatabase ?? Resources.DatabaseManager ?? new DatabaseManager();
+                    m_vAllianceSeed = db.GetMaxAllianceId() + 1;
+                }
+                long nextId = m_vAllianceSeed;
+                m_vAllianceSeed++;
+                return nextId;
+            }
+        }
+
         public static Alliance CreateAlliance(long seed)
         {
             Alliance alliance;
             if (seed == 0)
             {
-                seed = m_vAllianceSeed;
+                seed = GenerateAllianceId();
             }
             alliance = new Alliance(seed);
-            m_vAllianceSeed++;
             m_vDatabase.CreateAlliance(alliance);
             ResourcesManager.AddAllianceInMemory(alliance);
             return alliance;
@@ -88,10 +117,9 @@ namespace CSS.Core
             Level pl;
             if (seed == 0)
             {
-                seed = m_vAvatarSeed;
+                seed = GeneratePlayerId();
             }
             pl = new Level(seed, token);
-            m_vAvatarSeed++;
             pl.Avatar.LastTickSaved = DateTime.UtcNow;
             pl.Avatar.m_vAccountCreationDate = DateTime.UtcNow;
             pl.Avatar.TutorialStepsCount = 13;

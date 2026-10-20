@@ -116,6 +116,55 @@ namespace CSS.Logic
             SetResourceCount(CSVManager.DataTables.GetResourceByName("Elixir"), ToInt32(AppSettings["startingElixir"]));
             SetResourceCount(CSVManager.DataTables.GetResourceByName("DarkElixir"), ToInt32(AppSettings["startingDarkElixir"]));
             SetResourceCount(CSVManager.DataTables.GetResourceByName("Diamonds"), ToInt32(AppSettings["startingGems"]));
+            InitializeDefaultTroopsAndSpells();
+        }
+
+        public void InitializeDefaultTroopsAndSpells()
+        {
+            try
+            {
+                var charTable = CSVManager.DataTables.GetTable(3);
+                if (charTable != null)
+                {
+                    for (int i = 0; i < charTable.GetItemCount(); i++)
+                    {
+                        var cd = (CharacterData)charTable.GetItemAt(i);
+                        if (cd != null)
+                        {
+                            SetUnitUpgradeLevel(cd, 0);
+                        }
+                    }
+                }
+
+                var spellTable = CSVManager.DataTables.GetTable(25);
+                if (spellTable != null)
+                {
+                    for (int i = 0; i < spellTable.GetItemCount(); i++)
+                    {
+                        var sd = (SpellData)spellTable.GetItemAt(i);
+                        if (sd != null)
+                        {
+                            SetUnitUpgradeLevel(sd, 0);
+                        }
+                    }
+                }
+
+                var heroTable = CSVManager.DataTables.GetTable(27);
+                if (heroTable != null)
+                {
+                    for (int i = 0; i < heroTable.GetItemCount(); i++)
+                    {
+                        var hd = (HeroData)heroTable.GetItemAt(i);
+                        if (hd != null)
+                        {
+                            SetUnitUpgradeLevel(hd, 0);
+                            SetHeroHealth(hd, 0);
+                            SetHeroState(hd, 3);
+                        }
+                    }
+                }
+            }
+            catch (Exception) { }
         }
 
         public List<DataSlot> Achievements { get; set; }
