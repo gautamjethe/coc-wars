@@ -195,14 +195,6 @@ namespace CSS.Logic
                         data.AddInt(alliance.m_vAllianceMembers[this.UserId].Role);
                         data.AddInt(alliance.m_vAllianceLevel);
                     }
-                    else
-                    {
-                        data.Add(0);
-                    }
-                }
-                else
-                {
-                    data.Add(0);
                 }
                 data.Add(0);
 
@@ -360,6 +352,7 @@ namespace CSS.Logic
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"[Error] ClientAvatar.EncodeSync failed: {ex}");
                 Logger.Write($"[Error] ClientAvatar.EncodeSync failed: {ex.Message}");
                 return new byte[0];
             }
