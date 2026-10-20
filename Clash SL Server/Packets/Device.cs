@@ -50,6 +50,7 @@ namespace CSS.Packets
         internal string IPAddress;
 
         internal uint ClientSeed;
+        internal bool WarMapSent;
 
         internal bool Connected => this.Socket.Connected && (!this.Socket.Poll(1000, SelectMode.SelectRead) || this.Socket.Available != 0);
 
