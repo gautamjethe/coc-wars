@@ -329,14 +329,15 @@ namespace CSS.Logic
                 data.AddLong(946720861000);
 
                 data.Add(this.m_vnameChosenByUser);
+                data.Add(this.m_vNameChangingLeft);
 
                 data.AddInt(0);
                 data.AddInt(0);
                 data.AddInt(0);
                 data.AddInt(1);
+                data.AddInt(0);
+                data.AddInt(0);
 
-                data.AddInt(0);
-                data.AddInt(0);
                 data.Add(0);
                 data.AddDataSlots(GetResourceCaps());
                 data.AddDataSlots(GetResources());
@@ -371,9 +372,10 @@ namespace CSS.Logic
                     data.AddRange(BitConverter.GetBytes(0).Reverse());
                 }
 
-                data.AddRange(BitConverter.GetBytes(ObjectManager.NpcLevels.Count).Reverse());
+                int npcCount = ObjectManager.NpcLevels.Count;
+                data.AddRange(BitConverter.GetBytes(npcCount).Reverse());
                 {
-                    for (var i = 17000000; i < 17000050; i++)
+                    for (var i = 17000000; i < 17000000 + npcCount; i++)
                     {
                         data.AddRange(BitConverter.GetBytes(i).Reverse());
                         data.AddRange(BitConverter.GetBytes(rnd.Next(3, 3)).Reverse());
