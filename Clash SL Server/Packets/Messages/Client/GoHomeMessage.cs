@@ -53,6 +53,10 @@ namespace CSS.Packets.Messages.Client
                     {
                         new AllianceWarMapDataMessage(this.Device, war).Send();
                     }
+                    else
+                    {
+                        new AllianceWarMapDataMessage(this.Device).Send();
+                    }
                 }
                 else
                 {

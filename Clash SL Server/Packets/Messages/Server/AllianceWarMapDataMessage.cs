@@ -177,11 +177,18 @@ namespace CSS.Packets.Messages.Server
 
         private void EncodeDefaultWarMap()
         {
-            // Empty / default state when clan is not currently in a war
-            this.Data.AddInt((int)ClanWarState.NOT_IN_WAR);
-            this.Data.AddInt(0);
-
             long clanId = this.Device?.Player?.Avatar?.AllianceId ?? 1;
+            bool isSearching = clanId > 0 && ClanWarManager.IsClanSearching(clanId);
+            int warState = isSearching ? (int)ClanWarState.SEARCHING : (int)ClanWarState.NOT_IN_WAR;
+            int searchDuration = 0;
+            if (isSearching && ClanWarManager.SearchingClans.TryGetValue(clanId, out var info))
+            {
+                searchDuration = Math.Max(0, (int)(DateTime.UtcNow - info.SearchStartTime).TotalSeconds);
+            }
+
+            this.Data.AddInt(warState);
+            this.Data.AddInt(searchDuration);
+
             string clanName = "Clan";
             Alliance a = ObjectManager.GetAlliance(clanId);
             if (a != null)
@@ -191,8 +198,8 @@ namespace CSS.Packets.Messages.Server
 
             this.Data.AddLong(clanId);
             this.Data.AddString(clanName);
-            this.Data.AddInt(0);
-            this.Data.AddInt(1);
+            this.Data.AddInt(a != null ? a.m_vAllianceBadgeData : 0);
+            this.Data.AddInt(a != null ? a.m_vAllianceLevel : 1);
             this.Data.AddInt(0);
             this.Data.AddInt(0); // 0 members
 

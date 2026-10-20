@@ -933,7 +933,9 @@ namespace CSS.Logic
                 var player = await ResourcesManager.GetPlayer(mem.AvatarId);
                 if (player?.Client != null)
                 {
+                    new AllianceFullEntryMessage(player.Client, clan).Send();
                     new AllianceWarDataMessage(player.Client).Send();
+                    new AllianceWarMapDataMessage(player.Client).Send();
                 }
             }
 
@@ -971,7 +973,9 @@ namespace CSS.Logic
                         var player = await ResourcesManager.GetPlayer(mem.AvatarId);
                         if (player?.Client != null)
                         {
+                            new AllianceFullEntryMessage(player.Client, clan).Send();
                             new AllianceWarDataMessage(player.Client).Send();
+                            new AllianceWarMapDataMessage(player.Client).Send();
                         }
                     }
                     Logger.Say($"Clan '{clan.m_vAllianceName}' cancelled Clan War matchmaking search.");
