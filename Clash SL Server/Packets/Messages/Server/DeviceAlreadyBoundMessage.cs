@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using CSS.Helpers.List;
 using CSS.Logic;
 
@@ -14,7 +14,7 @@ namespace CSS.Packets.Messages.Server
 
         public Level Player;
 
-        internal override async void Encode()
+        internal override void Encode()
         {
             try
             {
@@ -26,9 +26,12 @@ namespace CSS.Packets.Messages.Server
                 this.Data.AddLong(clientAvatar.UserId);
 
                 this.Data.AddString(clientAvatar.UserToken);
-                this.Data.AddRange(await clientAvatar.Encode());
+                this.Data.AddRange(clientAvatar.EncodeSync());
             }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                CSS.Core.Logger.Write($"[Error] DeviceAlreadyBoundMessage.Encode failed: {ex.Message}");
+            }
         }
     }
 }

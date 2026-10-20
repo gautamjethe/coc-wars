@@ -17,7 +17,7 @@ namespace CSS.Packets.Messages.Server
             this.AttackType = attackType;
         }
 
-        internal override async void Encode()
+        internal override void Encode()
         {
             try
             {
@@ -50,14 +50,15 @@ namespace CSS.Packets.Messages.Server
                 this.Data.AddInt(-1);
                 this.Data.AddInt((int)this.OwnerLevel.Avatar.LastTickSaved.Subtract(new DateTime(1970, 1, 1)).TotalSeconds);
                 this.Data.AddRange(ch.Encode);
-                this.Data.AddRange(await this.OwnerLevel.Avatar.Encode());
-                this.Data.AddRange(await this.VisitorLevel.Avatar.Encode());
+                this.Data.AddRange(this.OwnerLevel.Avatar.EncodeSync());
+                this.Data.AddRange(this.VisitorLevel.Avatar.EncodeSync());
                 this.Data.AddInt(this.AttackType); // 1 : Friendly ?       2 : Clan War (next disabled)       3 : PvP         5 : Friendly
                 this.Data.AddInt(0);
                 this.Data.Add(0);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                CSS.Core.Logger.Write($"[Error] EnemyHomeDataMessage.Encode failed: {ex.Message}");
             }
         }
 

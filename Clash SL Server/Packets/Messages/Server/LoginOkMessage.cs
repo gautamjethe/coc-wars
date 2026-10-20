@@ -55,7 +55,7 @@ namespace CSS.Packets.Messages.Server
 
             this.Data.AddInt(0);
             this.Data.AddString(avatar.GoogleId);
-            this.Data.AddString(avatar.Region.ToUpper());
+            this.Data.AddString(avatar.Region?.ToUpper() ?? "EN");
             this.Data.AddString(null);
             this.Data.AddInt(1);
 
