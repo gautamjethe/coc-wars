@@ -111,12 +111,13 @@ namespace CSS.Logic
             this.TutorialStepsCount  = 0x0D;
             this.LastTickSaved       = DateTime.UtcNow;
             this.m_vAccountCreationDate = DateTime.UtcNow;
+            this.m_vnameChosenByUser = 0x01;
+            this.m_vNameChangingLeft = 0x01;
 
             SetResourceCount(CSVManager.DataTables.GetResourceByName("Gold"), ToInt32(AppSettings["startingGold"]));
             SetResourceCount(CSVManager.DataTables.GetResourceByName("Elixir"), ToInt32(AppSettings["startingElixir"]));
             SetResourceCount(CSVManager.DataTables.GetResourceByName("DarkElixir"), ToInt32(AppSettings["startingDarkElixir"]));
             SetResourceCount(CSVManager.DataTables.GetResourceByName("Diamonds"), ToInt32(AppSettings["startingGems"]));
-            InitializeDefaultTroopsAndSpells();
         }
 
         public void InitializeDefaultTroopsAndSpells()
