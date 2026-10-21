@@ -203,60 +203,73 @@ namespace CSS.Packets.Messages.Server
 
         private void EncodeMember(ClanWar war, ClanWarMember m)
         {
+            // Fields 5-7: ReadLong x3 (vtable[0x6c])
             this.Data.AddLong(m.ClanId);
             this.Data.AddLong(m.UserId);
             this.Data.AddLong(m.HomeId);
+
+            // Field 8: ReadString (vtable[0x48])
             this.Data.AddString(m.Name ?? "Player");
 
-            this.Data.AddInt(m.StarsConceded);
-            this.Data.AddInt(m.DamageConceded);
-            this.Data.AddInt(0);
-            this.Data.AddInt(m.AttacksUsed);
-            this.Data.AddInt(m.GotAttackedCount);
-            this.Data.AddInt(m.GoldGain);
-            this.Data.AddInt(m.ElixirGain);
-            this.Data.AddInt(m.DarkElixirGain);
-            this.Data.AddInt(m.GoldAvailable);
-            this.Data.AddInt(m.ElixirAvailable);
-            this.Data.AddInt(m.DarkElixirAvailable);
-            this.Data.AddInt(0);
-            this.Data.AddInt(m.OffenceWeight);
-            this.Data.AddInt(m.DefenceWeight);
-            this.Data.AddInt(1);
-            this.Data.AddInt(Math.Max(0, m.TownHallLevel - 1));
-            this.Data.AddInt(m.MapPosition);
+            // Fields 9-25: 17× ReadInt32 (vtable[0x54])
+            this.Data.AddInt(m.StarsConceded);       // 9
+            this.Data.AddInt(m.DamageConceded);      // 10
+            this.Data.AddInt(0);                     // 11
+            this.Data.AddInt(m.AttacksUsed);         // 12
+            this.Data.AddInt(m.GotAttackedCount);    // 13
+            this.Data.AddInt(m.GoldGain);            // 14
+            this.Data.AddInt(m.ElixirGain);          // 15
+            this.Data.AddInt(m.DarkElixirGain);      // 16
+            this.Data.AddInt(m.GoldAvailable);       // 17
+            this.Data.AddInt(m.ElixirAvailable);     // 18
+            this.Data.AddInt(m.DarkElixirAvailable); // 19
+            this.Data.AddInt(0);                     // 20
+            this.Data.AddInt(m.OffenceWeight);       // 21
+            this.Data.AddInt(m.DefenceWeight);       // 22
+            this.Data.AddInt(1);                     // 23 (has hero or troop data)
+            this.Data.AddInt(Math.Max(0, m.TownHallLevel - 1)); // 24 (TH level 0-based)
+            this.Data.AddInt(m.MapPosition);         // 25 (map slot)
 
-            // Clan Castle data flag (byte_0x8c)
+            // Field 26: ReadBool (vtable[0x50]) - clan castle flag
             this.Data.Add((byte)1);
+
+            // Field 27 (if flag=1): ReadString (vtable[0x48]) - CC message
             this.Data.AddString(m.ClanCastleMessage ?? "");
+
+            // Fields 28-31: 4× ReadInt32 - CC capacity data
             int ccCapacity = m.ClanCastleMaxCapacity > 0 ? m.ClanCastleMaxCapacity : 30;
             int ccUsed = 0;
             try { ccUsed = m.GetClanCastleUsedCapacity(); } catch { }
+            this.Data.AddInt(ccCapacity);  // 28 [r8+0x40]
+            this.Data.AddInt(ccUsed);      // 29 [r8+0x90]
+            this.Data.AddInt(0);           // 30 [r8+0x94]
+            this.Data.AddInt(0);           // 31 [r8+0xa0]
 
-            this.Data.AddInt(ccCapacity);
-            this.Data.AddInt(ccUsed);
-            this.Data.AddInt(0);
-            this.Data.AddInt(0);
-
-            // WarId
+            // Field 32: ReadBool (vtable[0x50]) - optional long 1 flag
             this.Data.Add((byte)1);
+            // Field 33 (if flag=1): ReadLong (vtable[0x6c]) - war ID
             this.Data.AddLong(war.WarId);
 
-            // Optional Long 1
+            // Field 34: ReadBool (vtable[0x50]) - optional long 2 flag
+            this.Data.Add((byte)0);        // no second optional long
+
+            // Fields after optional longs (always present):
+            // [r8+0xa8]: ReadBool - additional flag
             this.Data.Add((byte)0);
 
-            // Optional Long 2
-            this.Data.Add((byte)0);
-
-            // Trailing fields
+            // [r8+0x88]: ReadInt32 - CC level
             this.Data.AddInt(m.ClanCastleLevel);
+            // [r8+0xac]: ReadInt32
             this.Data.AddInt(0);
-            this.Data.AddInt(0);
-            this.Data.AddString("");
+            // [r8+0xb0]: ReadInt32
             this.Data.AddInt(0);
 
-            // Attacks conceded count
-            this.Data.AddInt(0);
+            // CRITICAL: client reads vtable[0x44] = ReadLong here (NOT a string!)
+            // Previous bug: AddString("") wrote 4 bytes, client read 8 → 4-byte shift → SIGSEGV
+            this.Data.AddLong(0);          // [r8+4] = supertroop/extra data long
+
+            // Attacks count + attack entries (ReadInt32, then N × ReadLong pairs)
+            this.Data.AddInt(0);           // 0 attacks = no attack entries follow
         }
 
         private void EncodeDefaultWarMap()
