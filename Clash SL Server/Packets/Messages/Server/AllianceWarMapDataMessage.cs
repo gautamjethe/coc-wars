@@ -50,7 +50,15 @@ namespace CSS.Packets.Messages.Server
             }
 
             // War State: 4 = Preparation Day, 5 = Battle Day, 6 = War Ended
-            this.Data.AddInt((int)war.State);
+            // In village mode (before war map opened), cap state at 3 to set byte 0x29 (data loaded)
+            // without triggering TID_ALLIANCE_WAR_EVENT_WAR_STARTED banner crash in libg.so (0x000b7508).
+            int stateToEncode = (int)war.State;
+            if (this.Device?.PlayerState != Logic.Enums.State.WAR_EMODE && stateToEncode > 3)
+            {
+                stateToEncode = 3;
+            }
+
+            this.Data.AddInt(stateToEncode);
             this.Data.AddInt(war.RemainingTimeSeconds);
 
             // Determine which clan is our player's clan (Clan 1) and enemy clan (Clan 2)

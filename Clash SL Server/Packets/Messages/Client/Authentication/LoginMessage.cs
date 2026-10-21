@@ -255,6 +255,10 @@ namespace CSS.Packets.Messages.Client
                     new AllianceStreamMessage(this.Device, alliance).Send();
 
                     new AllianceWarDataMessage(this.Device, war).Send();
+                    if (war != null && war.State != ClanWarState.NOT_IN_WAR && war.State != ClanWarState.SEARCHING)
+                    {
+                        new AllianceWarMapDataMessage(this.Device, war).Send();
+                    }
                 }
                 else
                 {
