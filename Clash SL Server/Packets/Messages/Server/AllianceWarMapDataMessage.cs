@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using CSS.Core;
 using CSS.Helpers.List;
 using CSS.Logic;
@@ -50,15 +51,7 @@ namespace CSS.Packets.Messages.Server
             }
 
             // War State: 4 = Preparation Day, 5 = Battle Day, 6 = War Ended
-            // In village mode (before war map opened), cap state at 3 to set byte 0x29 (data loaded)
-            // without triggering TID_ALLIANCE_WAR_EVENT_WAR_STARTED banner crash in libg.so (0x000b7508).
-            int stateToEncode = (int)war.State;
-            if (this.Device?.PlayerState != Logic.Enums.State.WAR_EMODE && stateToEncode > 3)
-            {
-                stateToEncode = 3;
-            }
-
-            this.Data.AddInt(stateToEncode);
+            this.Data.AddInt((int)war.State);
             this.Data.AddInt(war.RemainingTimeSeconds);
 
             // Determine which clan is our player's clan (Clan 1) and enemy clan (Clan 2)
@@ -75,6 +68,26 @@ namespace CSS.Packets.Messages.Server
 
             if (c1.Members == null) c1.Members = new List<ClanWarMember>();
             if (c2.Members == null) c2.Members = new List<ClanWarMember>();
+
+            long myUserId = this.Device?.Player?.Avatar?.UserId ?? 0;
+            long myHomeId = this.Device?.Player?.Avatar?.CurrentHomeId ?? myUserId;
+            string myName = this.Device?.Player?.Avatar?.AvatarName ?? "Player";
+
+            // CRITICAL: libg.so looks up the local player in Clan 1 war roster via WarClan::getMemberByPlayerId(myUserId).
+            // If the player is not found, getMemberByPlayerId returns NULL, causing a SIGSEGV null-pointer dereference at 0xe2f24.
+            // Guarantee the player is present in c1.Members:
+            if (myUserId > 0 && !c1.Members.Any(m => m.UserId == myUserId))
+            {
+                if (c1.Members.Count > 0)
+                {
+                    c1.Members[0].UserId = myUserId;
+                    c1.Members[0].HomeId = myHomeId;
+                    if (!string.IsNullOrEmpty(myName))
+                    {
+                        c1.Members[0].Name = myName;
+                    }
+                }
+            }
 
             // Clan 1 Header
             this.Data.AddLong(c1.ClanId);
