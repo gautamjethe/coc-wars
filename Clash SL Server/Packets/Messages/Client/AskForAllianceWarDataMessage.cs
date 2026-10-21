@@ -56,7 +56,7 @@ namespace CSS.Packets.Messages.Client
 
                 new AllianceWarDataMessage(this.Device, war).Send();
 
-                if (war != null && war.State != ClanWarState.NOT_IN_WAR && war.State != ClanWarState.SEARCHING)
+                if (war != null && war.State != ClanWarState.NOT_IN_WAR && war.State != ClanWarState.SEARCHING && this.Device?.PlayerState == Logic.Enums.State.WAR_EMODE)
                 {
                     new AllianceWarMapDataMessage(this.Device, war).Send();
                 }

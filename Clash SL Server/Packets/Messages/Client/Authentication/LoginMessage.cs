@@ -254,26 +254,6 @@ namespace CSS.Packets.Messages.Client
                     new AllianceFullEntryMessage(this.Device, alliance).Send();
                     new AllianceWarDataMessage(this.Device, war).Send();
                     new AllianceStreamMessage(this.Device, alliance).Send();
-
-                    if (war != null && war.State != ClanWarState.NOT_IN_WAR && war.State != ClanWarState.SEARCHING)
-                    {
-                        var dev = this.Device;
-                        _ = System.Threading.Tasks.Task.Run(async () =>
-                        {
-                            await System.Threading.Tasks.Task.Delay(600);
-                            try
-                            {
-                                if (dev != null && dev.Connected && dev.Player?.Avatar != null)
-                                {
-                                    dev.WarMapSent = true;
-                                    new AllianceWarDataMessage(dev, war).Send();
-                                    new AllianceWarMapDataMessage(dev, war).Send();
-                                    Logger.Say($"[ClanWars] Sent village war map sync to client for clan {alliance.m_vAllianceId}");
-                                }
-                            }
-                            catch (Exception) { }
-                        });
-                    }
                 }
                 else
                 {
