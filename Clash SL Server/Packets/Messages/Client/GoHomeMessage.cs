@@ -70,12 +70,12 @@ namespace CSS.Packets.Messages.Client
                             alliance.m_vWarState = (int)war.State;
                             alliance.m_vActiveWarId = war.WarId;
                         }
-                        new AllianceFullEntryMessage(Device, alliance).Send();
-                        // NEVER send 24331 (AllianceWarDataMessage) in village mode - GL thread crash.
+                        // CRITICAL ORDER: 24335 before 24324 (war button byte 0x29 fix)
                         if (war != null && war.State != ClanWarState.NOT_IN_WAR && war.State != ClanWarState.SEARCHING)
                         {
-                            new AllianceWarMapDataMessage(Device, war).Send();
+                            new AllianceWarMapDataMessage(Device, war).Send(); // 24335 first
                         }
+                        new AllianceFullEntryMessage(Device, alliance).Send(); // 24324 second
                         new AllianceStreamMessage(Device, alliance).Send();
                     }
                 }

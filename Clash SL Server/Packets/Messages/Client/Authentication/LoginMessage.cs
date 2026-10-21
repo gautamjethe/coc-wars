@@ -251,17 +251,16 @@ namespace CSS.Packets.Messages.Client
                         alliance.m_vWarState = (int)war.State;
                         alliance.m_vActiveWarId = war.WarId;
                     }
-                    new AllianceFullEntryMessage(this.Device, alliance).Send();
-                    new AllianceStreamMessage(this.Device, alliance).Send();
-
+                    // CRITICAL ORDER: 24335 must be sent BEFORE 24324.
+                    // libg.so 0xb51b5 checks [warButton+4] (war map pointer set by 24335 decode)
+                    // to decide whether to write byte 0x29 = 1 (enables war button).
+                    // If 24324 arrives before 24335, warMap=NULL → byte 0x29 stays 0 → button disabled.
                     if (war != null && war.State != ClanWarState.NOT_IN_WAR && war.State != ClanWarState.SEARCHING)
                     {
-                        // NEVER send AllianceWarDataMessage (24331) in village mode.
-                        // libg.so 0x86d97 dispatches 24331 via an uninitialized war packet-handler
-                        // list on the GL thread → SIGSEGV r4=NULL fault addr 0x17c.
-                        // 24324 already sets the war state; 24335 sets byte 0x29 to enable the button.
-                        new AllianceWarMapDataMessage(this.Device, war).Send();
+                        new AllianceWarMapDataMessage(this.Device, war).Send(); // 24335 first
                     }
+                    new AllianceFullEntryMessage(this.Device, alliance).Send(); // 24324 second
+                    new AllianceStreamMessage(this.Device, alliance).Send();
                 }
                 else
                 {
