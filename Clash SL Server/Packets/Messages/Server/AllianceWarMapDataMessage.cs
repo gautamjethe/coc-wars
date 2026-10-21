@@ -50,9 +50,8 @@ namespace CSS.Packets.Messages.Server
                 return;
             }
 
-            // War State: 4 = Preparation Day, 5 = Battle Day, 6 = War Ended
-            this.Data.AddInt((int)war.State);
-            this.Data.AddInt(war.RemainingTimeSeconds);
+            // War State written after clan swap + stateToEncode calculation below.
+            // (actual AddInt call is deferred - see below after stateToEncode is determined)
 
             // Determine which clan is our player's clan (Clan 1) and enemy clan (Clan 2)
             long playerClanId = this.Device?.Player?.Avatar?.AllianceId ?? 0;
@@ -66,28 +65,59 @@ namespace CSS.Packets.Messages.Server
                 c2 = war.Clan1;
             }
 
+            // libg.so 0x000b7508: cmp r0, #3 / ble #0xb78da
+            // When warState > 3 in village mode it allocates TID_ALLIANCE_WAR_EVENT_WAR_STARTED banner.
+            // Banner tick at 0xe2f24 does getMemberByPlayerId(myId) -> crash if player not found.
+            // Fix: cap stateToEncode at 3 in village mode so banner is never created.
+            int stateToEncode = (int)war.State;
+            if (this.Device?.PlayerState != Logic.Enums.State.WAR_EMODE && stateToEncode > 3)
+                stateToEncode = 3;
+
             if (c1.Members == null) c1.Members = new List<ClanWarMember>();
             if (c2.Members == null) c2.Members = new List<ClanWarMember>();
 
-            long myUserId = this.Device?.Player?.Avatar?.UserId ?? 0;
-            long myHomeId = this.Device?.Player?.Avatar?.CurrentHomeId ?? myUserId;
-            string myName = this.Device?.Player?.Avatar?.AvatarName ?? "Player";
+            long myUserId  = this.Device?.Player?.Avatar?.UserId ?? 0;
+            long myHomeId  = this.Device?.Player?.Avatar?.CurrentHomeId ?? myUserId;
+            string myName  = this.Device?.Player?.Avatar?.AvatarName ?? "Player";
+            int myThLevel  = (this.Device?.Player?.Avatar?.m_vTownHallLevel > 0)
+                             ? this.Device.Player.Avatar.m_vTownHallLevel : 9;
 
-            // CRITICAL: libg.so looks up the local player in Clan 1 war roster via WarClan::getMemberByPlayerId(myUserId).
-            // If the player is not found, getMemberByPlayerId returns NULL, causing a SIGSEGV null-pointer dereference at 0xe2f24.
-            // Guarantee the player is present in c1.Members:
-            if (myUserId > 0 && !c1.Members.Any(m => m.UserId == myUserId))
+            // CRITICAL: libg.so 0xe2f22 calls getMemberByPlayerId(myUserId) and immediately
+            // dereferences the result. If the player is absent the return value is NULL -> SIGSEGV.
+            // We MUST guarantee the current player appears in c1.Members.
+            if (myUserId > 0)
             {
-                if (c1.Members.Count > 0)
+                int idx = c1.Members.FindIndex(m => m.UserId == myUserId);
+                if (idx < 0)
                 {
-                    c1.Members[0].UserId = myUserId;
-                    c1.Members[0].HomeId = myHomeId;
-                    if (!string.IsNullOrEmpty(myName))
+                    if (c1.Members.Count > 0)
                     {
-                        c1.Members[0].Name = myName;
+                        // Replace first member's identity so the list length stays correct.
+                        c1.Members[0].UserId   = myUserId;
+                        c1.Members[0].HomeId   = myHomeId;
+                        c1.Members[0].Name     = myName;
+                        c1.Members[0].TownHallLevel = myThLevel;
+                        c1.Members[0].MapPosition   = 1;
+                    }
+                    else
+                    {
+                        // Roster is empty - add a minimal synthetic member so the lookup succeeds.
+                        c1.Members.Add(new ClanWarMember
+                        {
+                            UserId        = myUserId,
+                            HomeId        = myHomeId,
+                            ClanId        = c1.ClanId,
+                            Name          = myName,
+                            TownHallLevel = myThLevel,
+                            MapPosition   = 1,
+                        });
                     }
                 }
             }
+
+            // Now write war state (capped at 3 in village mode) and remaining time
+            this.Data.AddInt(stateToEncode);
+            this.Data.AddInt(war.RemainingTimeSeconds);
 
             // Clan 1 Header
             this.Data.AddLong(c1.ClanId);
