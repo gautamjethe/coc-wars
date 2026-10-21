@@ -254,13 +254,16 @@ namespace CSS.Packets.Messages.Client
                     new AllianceFullEntryMessage(this.Device, alliance).Send();
                     new AllianceStreamMessage(this.Device, alliance).Send();
 
-                    new AllianceWarDataMessage(this.Device, war).Send();
-                    // 24335 sets byte 0x29 so the War Button is enabled for warState >= 2.
-                    // State is capped at 3 inside AllianceWarMapDataMessage when in village mode,
-                    // preventing the TID_ALLIANCE_WAR_EVENT_WAR_STARTED banner crash.
-                    if (war != null && war.State != ClanWarState.NOT_IN_WAR && war.State != ClanWarState.SEARCHING)
+                    if (war != null)
                     {
-                        new AllianceWarMapDataMessage(this.Device, war).Send();
+                        new AllianceWarDataMessage(this.Device, war).Send();
+                        // 24335 sets byte 0x29, enabling the War Button for warState >= 2.
+                        // AllianceWarMapDataMessage caps state at 3 in village mode to avoid
+                        // the TID_ALLIANCE_WAR_EVENT_WAR_STARTED banner crash at libg.so 0xb7508.
+                        if (war.State != ClanWarState.NOT_IN_WAR && war.State != ClanWarState.SEARCHING)
+                        {
+                            new AllianceWarMapDataMessage(this.Device, war).Send();
+                        }
                     }
                 }
                 else

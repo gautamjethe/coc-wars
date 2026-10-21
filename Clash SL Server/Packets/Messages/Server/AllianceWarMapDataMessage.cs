@@ -73,8 +73,10 @@ namespace CSS.Packets.Messages.Server
             if (this.Device?.PlayerState != Logic.Enums.State.WAR_EMODE && stateToEncode > 3)
                 stateToEncode = 3;
 
-            if (c1.Members == null) c1.Members = new List<ClanWarMember>();
-            if (c2.Members == null) c2.Members = new List<ClanWarMember>();
+            // Clone the member lists so we NEVER mutate the live war object.
+            // Mutating war.Clan1.Members corrupts roster for every subsequent login.
+            var c1Members = c1.Members != null ? new List<ClanWarMember>(c1.Members) : new List<ClanWarMember>();
+            var c2Members = c2.Members != null ? new List<ClanWarMember>(c2.Members) : new List<ClanWarMember>();
 
             long myUserId  = this.Device?.Player?.Avatar?.UserId ?? 0;
             long myHomeId  = this.Device?.Player?.Avatar?.CurrentHomeId ?? myUserId;
@@ -87,22 +89,34 @@ namespace CSS.Packets.Messages.Server
             // We MUST guarantee the current player appears in c1.Members.
             if (myUserId > 0)
             {
-                int idx = c1.Members.FindIndex(m => m.UserId == myUserId);
+                int idx = c1Members.FindIndex(m => m.UserId == myUserId);
                 if (idx < 0)
                 {
-                    if (c1.Members.Count > 0)
+                    if (c1Members.Count > 0)
                     {
-                        // Replace first member's identity so the list length stays correct.
-                        c1.Members[0].UserId   = myUserId;
-                        c1.Members[0].HomeId   = myHomeId;
-                        c1.Members[0].Name     = myName;
-                        c1.Members[0].TownHallLevel = myThLevel;
-                        c1.Members[0].MapPosition   = 1;
+                        // Clone the first member and replace identity fields only.
+                        var replacement = new ClanWarMember
+                        {
+                            UserId              = myUserId,
+                            HomeId              = myHomeId,
+                            ClanId              = c1Members[0].ClanId,
+                            Name                = myName,
+                            TownHallLevel       = myThLevel,
+                            MapPosition         = c1Members[0].MapPosition,
+                            GoldAvailable       = c1Members[0].GoldAvailable,
+                            ElixirAvailable     = c1Members[0].ElixirAvailable,
+                            DarkElixirAvailable = c1Members[0].DarkElixirAvailable,
+                            OffenceWeight       = c1Members[0].OffenceWeight,
+                            DefenceWeight       = c1Members[0].DefenceWeight,
+                            ClanCastleLevel     = c1Members[0].ClanCastleLevel,
+                            ClanCastleMaxCapacity = c1Members[0].ClanCastleMaxCapacity,
+                        };
+                        c1Members[0] = replacement;
                     }
                     else
                     {
-                        // Roster is empty - add a minimal synthetic member so the lookup succeeds.
-                        c1.Members.Add(new ClanWarMember
+                        // Roster is empty – add a minimal synthetic member so the lookup succeeds.
+                        c1Members.Add(new ClanWarMember
                         {
                             UserId        = myUserId,
                             HomeId        = myHomeId,
@@ -110,6 +124,12 @@ namespace CSS.Packets.Messages.Server
                             Name          = myName,
                             TownHallLevel = myThLevel,
                             MapPosition   = 1,
+                            GoldAvailable     = 100000,
+                            ElixirAvailable   = 100000,
+                            OffenceWeight     = 500 + myThLevel * 30,
+                            DefenceWeight     = 500 + myThLevel * 25,
+                            ClanCastleLevel   = (byte)Math.Min(6, Math.Max(1, myThLevel / 2)),
+                            ClanCastleMaxCapacity = 30,
                         });
                     }
                 }
@@ -127,8 +147,8 @@ namespace CSS.Packets.Messages.Server
             this.Data.AddInt(c1.TotalStars);
 
             // Clan 1 Members
-            this.Data.AddInt(c1.Members.Count);
-            foreach (var m in c1.Members)
+            this.Data.AddInt(c1Members.Count);
+            foreach (var m in c1Members)
             {
                 EncodeMember(war, m);
             }
@@ -155,8 +175,8 @@ namespace CSS.Packets.Messages.Server
             this.Data.AddInt(c2.TotalStars);
 
             // Clan 2 Members
-            this.Data.AddInt(c2.Members.Count);
-            foreach (var m in c2.Members)
+            this.Data.AddInt(c2Members.Count);
+            foreach (var m in c2Members)
             {
                 EncodeMember(war, m);
             }
