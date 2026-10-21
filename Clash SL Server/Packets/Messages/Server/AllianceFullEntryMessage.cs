@@ -35,12 +35,18 @@ namespace CSS.Packets.Messages.Server
                     remainingTime = Math.Max(0, (int)(DateTime.UtcNow - info.SearchStartTime).TotalSeconds);
                 }
 
-                // Send genuine war state. libg.so 0xb585e war-button check:
-                //   - warState 0 or 1 → only needs byte 0x28 (set by this packet)
-                //   - warState 2-6   → needs BOTH byte 0x28 AND byte 0x29 (set by 24335)
-                // We send 24335 (warState capped at 3) immediately after login so byte 0x29 is set.
-                this.Data.AddInt(warState);      // Field 2: War state (offset 0x48)
-                this.Data.AddInt(remainingTime); // Field 3: Remaining countdown (offset 0x54)
+                // CRITICAL: libg.so 0xb7505 reads [fp+8] (war state stored by THIS packet 24324)
+                // inside the 24335 decode handler and creates TID_ALLIANCE_WAR_EVENT_WAR_STARTED banner
+                // when that value > 3. The banner tick at 0xe2f24 then crashes (getMemberByPlayerId NULL).
+                // Fix: cap state at 3 in village mode. The HUD button text is set independently by
+                // AllianceWarDataMessage (24331) which calls setWarState(4) → "Preparation Day".
+                bool inWarMode = this.Device?.PlayerState == Logic.Enums.State.WAR_EMODE;
+                int stateToSend = warState;
+                if (!inWarMode && stateToSend > 3)
+                    stateToSend = 3;  // WAR_FOUND — prevents banner creation in 0xb7505
+
+                this.Data.AddInt(stateToSend);   // Field 2: War state (offset 0x48 / fp+8)
+                this.Data.AddInt(remainingTime);  // Field 3: Remaining countdown (offset 0x54)
 
                 if (war != null && war.State != ClanWarState.NOT_IN_WAR)
                 {

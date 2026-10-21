@@ -44,19 +44,17 @@ namespace CSS.Packets.Messages.Client
 
                 if (State == 1)
                 {
+                    // Player is returning to their WAR BASE village (in WAR_EMODE).
+                    // PlayerState must be set BEFORE building 24335 so AllianceWarMapDataMessage
+                    // knows NOT to cap the state (the banner is safe here because the player
+                    // IS already in the roster — they own this war village).
                     this.Device.PlayerState = Logic.Enums.State.WAR_EMODE;
                     this.Device.Player.Tick();
                     new OwnHomeDataMessage(this.Device, this.Device.Player).Send();
 
                     var war = ClanWarManager.GetWarByClanId(this.Device.Player.Avatar.AllianceId);
-                    if (war != null)
-                    {
-                        new AllianceWarMapDataMessage(this.Device, war).Send();
-                    }
-                    else
-                    {
-                        new AllianceWarMapDataMessage(this.Device).Send();
-                    }
+                    // Always send 24335; in WAR_EMODE the player IS in the roster (their own base)
+                    new AllianceWarMapDataMessage(this.Device, war).Send();
                 }
                 else
                 {
@@ -73,10 +71,14 @@ namespace CSS.Packets.Messages.Client
                             alliance.m_vActiveWarId = war.WarId;
                         }
                         new AllianceFullEntryMessage(Device, alliance).Send();
-                        new AllianceWarDataMessage(Device, war).Send();
-                        if (war != null && war.State != ClanWarState.NOT_IN_WAR && war.State != ClanWarState.SEARCHING)
+                        // Guard: war may be null if no active war for this clan
+                        if (war != null)
                         {
-                            new AllianceWarMapDataMessage(Device, war).Send();
+                            new AllianceWarDataMessage(Device, war).Send();
+                            if (war.State != ClanWarState.NOT_IN_WAR && war.State != ClanWarState.SEARCHING)
+                            {
+                                new AllianceWarMapDataMessage(Device, war).Send();
+                            }
                         }
                         new AllianceStreamMessage(Device, alliance).Send();
                     }
