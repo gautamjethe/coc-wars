@@ -65,12 +65,20 @@ namespace CSS.Packets.Messages.Server
             this.Data.AddInt(c1.ClanBadge);
             this.Data.AddInt(c1.ClanLevel);
             this.Data.AddInt(c1.TotalStars);
-            this.Data.AddInt(c1.Members.Count);
+            bool isWarMode = this.Device?.PlayerState == Logic.Enums.State.WAR_EMODE;
 
             // Clan 1 Members
-            foreach (var m in c1.Members)
+            if (isWarMode)
             {
-                EncodeMember(war, m);
+                this.Data.AddInt(c1.Members.Count);
+                foreach (var m in c1.Members)
+                {
+                    EncodeMember(war, m);
+                }
+            }
+            else
+            {
+                this.Data.AddInt(0);
             }
 
             // Clan 1 Tail
@@ -93,12 +101,19 @@ namespace CSS.Packets.Messages.Server
             this.Data.AddInt(c2.ClanBadge);
             this.Data.AddInt(c2.ClanLevel);
             this.Data.AddInt(c2.TotalStars);
-            this.Data.AddInt(c2.Members.Count);
 
             // Clan 2 Members
-            foreach (var m in c2.Members)
+            if (isWarMode)
             {
-                EncodeMember(war, m);
+                this.Data.AddInt(c2.Members.Count);
+                foreach (var m in c2.Members)
+                {
+                    EncodeMember(war, m);
+                }
+            }
+            else
+            {
+                this.Data.AddInt(0);
             }
 
             // Clan 2 Tail
