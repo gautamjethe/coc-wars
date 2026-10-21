@@ -252,6 +252,7 @@ namespace CSS.Packets.Messages.Client
                         alliance.m_vActiveWarId = war.WarId;
                     }
                     new AllianceFullEntryMessage(this.Device, alliance).Send();
+                    new AllianceWarDataMessage(this.Device, war).Send();
                     new AllianceStreamMessage(this.Device, alliance).Send();
 
                     if (war != null && war.State != ClanWarState.NOT_IN_WAR && war.State != ClanWarState.SEARCHING)
@@ -259,15 +260,15 @@ namespace CSS.Packets.Messages.Client
                         var dev = this.Device;
                         _ = System.Threading.Tasks.Task.Run(async () =>
                         {
-                            await System.Threading.Tasks.Task.Delay(1500);
+                            await System.Threading.Tasks.Task.Delay(600);
                             try
                             {
-                                if (dev != null && dev.Connected && dev.Player?.Avatar != null && !dev.WarMapSent)
+                                if (dev != null && dev.Connected && dev.Player?.Avatar != null)
                                 {
                                     dev.WarMapSent = true;
                                     new AllianceWarDataMessage(dev, war).Send();
                                     new AllianceWarMapDataMessage(dev, war).Send();
-                                    Logger.Say($"[ClanWars] Sent delayed initial war map to client for clan {alliance.m_vAllianceId}");
+                                    Logger.Say($"[ClanWars] Sent village war map sync to client for clan {alliance.m_vAllianceId}");
                                 }
                             }
                             catch (Exception) { }
