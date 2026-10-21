@@ -158,8 +158,12 @@ namespace CSS.Packets.Messages.Server
             // Clan Castle data flag (byte_0x8c)
             this.Data.Add((byte)1);
             this.Data.AddString(m.ClanCastleMessage ?? "");
-            this.Data.AddInt(m.ClanCastleMaxCapacity);
-            this.Data.AddInt(m.GetClanCastleUsedCapacity());
+            int ccCapacity = m.ClanCastleMaxCapacity > 0 ? m.ClanCastleMaxCapacity : 30;
+            int ccUsed = 0;
+            try { ccUsed = m.GetClanCastleUsedCapacity(); } catch { }
+
+            this.Data.AddInt(ccCapacity);
+            this.Data.AddInt(ccUsed);
             this.Data.AddInt(0);
             this.Data.AddInt(0);
 

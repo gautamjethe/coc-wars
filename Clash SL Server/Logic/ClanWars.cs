@@ -198,6 +198,7 @@ namespace CSS.Logic
 
         public int GetClanCastleUsedCapacity()
         {
+            if (Donations == null) return 0;
             int used = 0;
             foreach (var d in Donations)
             {
