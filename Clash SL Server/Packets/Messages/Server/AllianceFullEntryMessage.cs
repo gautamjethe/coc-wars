@@ -35,8 +35,12 @@ namespace CSS.Packets.Messages.Server
                     remainingTime = Math.Max(0, (int)(DateTime.UtcNow - info.SearchStartTime).TotalSeconds);
                 }
 
-                this.Data.AddInt(warState);      // Field 2: War state (offset 0x48)
-                this.Data.AddInt(remainingTime); // Field 3: Remaining countdown time in seconds (offset 0x54)
+                // In AllianceFullEntryMessage, report 1 (SEARCHING/ACTIVE_READY) so libg.so 0x000b585e
+                // validates the War Button immediately via byte 0x28 without waiting for 24335 in village mode.
+                // Packet 24331 (AllianceWarDataMessage) sets the HUD button widget to Preparation Day (4) and countdown.
+                int headerWarState = (war != null && war.State != ClanWarState.NOT_IN_WAR) ? (int)ClanWarState.SEARCHING : (isSearching ? (int)ClanWarState.SEARCHING : 0);
+                this.Data.AddInt(headerWarState); // Field 2: War state (offset 0x48)
+                this.Data.AddInt(remainingTime);  // Field 3: Remaining countdown time in seconds (offset 0x54)
 
                 if (war != null && war.State != ClanWarState.NOT_IN_WAR)
                 {
