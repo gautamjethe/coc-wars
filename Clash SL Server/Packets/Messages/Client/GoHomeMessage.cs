@@ -71,14 +71,10 @@ namespace CSS.Packets.Messages.Client
                             alliance.m_vActiveWarId = war.WarId;
                         }
                         new AllianceFullEntryMessage(Device, alliance).Send();
-                        // Guard: war may be null if no active war for this clan
-                        if (war != null)
+                        // NEVER send 24331 (AllianceWarDataMessage) in village mode - GL thread crash.
+                        if (war != null && war.State != ClanWarState.NOT_IN_WAR && war.State != ClanWarState.SEARCHING)
                         {
-                            new AllianceWarDataMessage(Device, war).Send();
-                            if (war.State != ClanWarState.NOT_IN_WAR && war.State != ClanWarState.SEARCHING)
-                            {
-                                new AllianceWarMapDataMessage(Device, war).Send();
-                            }
+                            new AllianceWarMapDataMessage(Device, war).Send();
                         }
                         new AllianceStreamMessage(Device, alliance).Send();
                     }
