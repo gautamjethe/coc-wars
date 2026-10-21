@@ -75,8 +75,12 @@ namespace CSS.Packets.Messages.Server
 
             // Clone the member lists so we NEVER mutate the live war object.
             // Mutating war.Clan1.Members corrupts roster for every subsequent login.
-            var c1Members = c1.Members != null ? new List<ClanWarMember>(c1.Members) : new List<ClanWarMember>();
-            var c2Members = c2.Members != null ? new List<ClanWarMember>(c2.Members) : new List<ClanWarMember>();
+            // NOTE: Member encoding is temporarily disabled (count=0) because the
+            // exact per-member field layout is being reverse-engineered from libg.so.
+            // Sending 0 members causes the client to skip the member decode loop entirely,
+            // preventing the SIGSEGV at 0x24c88a while keeping the war map state correct.
+            var c1Members = new List<ClanWarMember>(); // send 0 until format confirmed
+            var c2Members = new List<ClanWarMember>(); // send 0 until format confirmed
 
             long myUserId  = this.Device?.Player?.Avatar?.UserId ?? 0;
             long myHomeId  = this.Device?.Player?.Avatar?.CurrentHomeId ?? myUserId;
