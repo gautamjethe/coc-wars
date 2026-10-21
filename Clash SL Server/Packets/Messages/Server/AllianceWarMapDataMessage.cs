@@ -43,6 +43,12 @@ namespace CSS.Packets.Messages.Server
 
         private void EncodeWarMap(ClanWar war)
         {
+            if (war.Clan1 == null || war.Clan2 == null)
+            {
+                EncodeDefaultWarMap();
+                return;
+            }
+
             // War State: 4 = Preparation Day, 5 = Battle Day, 6 = War Ended
             this.Data.AddInt((int)war.State);
             this.Data.AddInt(war.RemainingTimeSeconds);
@@ -59,26 +65,21 @@ namespace CSS.Packets.Messages.Server
                 c2 = war.Clan1;
             }
 
+            if (c1.Members == null) c1.Members = new List<ClanWarMember>();
+            if (c2.Members == null) c2.Members = new List<ClanWarMember>();
+
             // Clan 1 Header
             this.Data.AddLong(c1.ClanId);
-            this.Data.AddString(c1.ClanName);
+            this.Data.AddString(c1.ClanName ?? "Clan");
             this.Data.AddInt(c1.ClanBadge);
             this.Data.AddInt(c1.ClanLevel);
             this.Data.AddInt(c1.TotalStars);
-            bool isWarMode = this.Device?.PlayerState == Logic.Enums.State.WAR_EMODE;
 
             // Clan 1 Members
-            if (isWarMode)
+            this.Data.AddInt(c1.Members.Count);
+            foreach (var m in c1.Members)
             {
-                this.Data.AddInt(c1.Members.Count);
-                foreach (var m in c1.Members)
-                {
-                    EncodeMember(war, m);
-                }
-            }
-            else
-            {
-                this.Data.AddInt(0);
+                EncodeMember(war, m);
             }
 
             // Clan 1 Tail
@@ -97,23 +98,16 @@ namespace CSS.Packets.Messages.Server
 
             // Clan 2 Header
             this.Data.AddLong(c2.ClanId);
-            this.Data.AddString(c2.ClanName);
+            this.Data.AddString(c2.ClanName ?? "Enemy Clan");
             this.Data.AddInt(c2.ClanBadge);
             this.Data.AddInt(c2.ClanLevel);
             this.Data.AddInt(c2.TotalStars);
 
             // Clan 2 Members
-            if (isWarMode)
+            this.Data.AddInt(c2.Members.Count);
+            foreach (var m in c2.Members)
             {
-                this.Data.AddInt(c2.Members.Count);
-                foreach (var m in c2.Members)
-                {
-                    EncodeMember(war, m);
-                }
-            }
-            else
-            {
-                this.Data.AddInt(0);
+                EncodeMember(war, m);
             }
 
             // Clan 2 Tail
