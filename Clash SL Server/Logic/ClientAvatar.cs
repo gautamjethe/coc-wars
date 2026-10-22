@@ -318,7 +318,7 @@ namespace CSS.Logic
                 data.AddDataSlots(NpcLootedGold);
                 data.AddDataSlots(NpcLootedElixir);
                 data.AddDataSlots(new List<DataSlot>());
-                data.AddDataSlots(GetVariables());
+                data.AddDataSlots(new List<DataSlot>());
                 data.AddDataSlots(new List<DataSlot>());
                 data.AddDataSlots(new List<DataSlot>());
 
@@ -356,34 +356,6 @@ namespace CSS.Logic
                 Logger.Write($"[Error] ClientAvatar.EncodeSync failed: {ex.Message}");
                 return new byte[0];
             }
-        }
-
-        public List<DataSlot> GetVariables()
-        {
-            var list = new List<DataSlot>();
-            try
-            {
-                var dt = CSVManager.DataTables?.GetTable(40);
-                if (dt != null)
-                {
-                    var varCounter = dt.GetDataByName("StarBonusCounter");
-                    if (varCounter != null) list.Add(new DataSlot(varCounter, 0));
-
-                    var varCooldown = dt.GetDataByName("StarBonusCooldown");
-                    if (varCooldown != null) list.Add(new DataSlot(varCooldown, 0));
-
-                    var varEndTimestep = dt.GetDataByName("StarBonusTimerEndTimestep");
-                    if (varEndTimestep != null) list.Add(new DataSlot(varEndTimestep, 0));
-
-                    var varCollected = dt.GetDataByName("StarBonusTimesCollected");
-                    if (varCollected != null) list.Add(new DataSlot(varCollected, 0));
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Write($"[Error] GetVariables failed: {ex.Message}");
-            }
-            return list;
         }
 
         public async Task<AllianceMemberEntry> GetAllianceMemberEntry()
