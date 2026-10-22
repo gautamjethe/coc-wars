@@ -245,21 +245,9 @@ namespace CSS.Packets.Messages.Client
                 Alliance alliance = ObjectManager.GetAlliance(level.Avatar.AllianceId);
                 if (alliance != null)
                 {
-                    ClanWar war = ClanWarManager.GetWarByClanId(alliance.m_vAllianceId);
-                    if (war != null)
-                    {
-                        alliance.m_vWarState = (int)war.State;
-                        alliance.m_vActiveWarId = war.WarId;
-                    }
-                    // CRITICAL ORDER: 24335 must be sent BEFORE 24324.
-                    // libg.so 0xb51b5 checks [warButton+4] (war map pointer set by 24335 decode)
-                    // to decide whether to write byte 0x29 = 1 (enables war button).
-                    // If 24324 arrives before 24335, warMap=NULL → byte 0x29 stays 0 → button disabled.
-                    if (war != null && war.State != ClanWarState.NOT_IN_WAR && war.State != ClanWarState.SEARCHING)
-                    {
-                        new AllianceWarMapDataMessage(this.Device, war).Send(); // 24335 first
-                    }
-                    new AllianceFullEntryMessage(this.Device, alliance).Send(); // 24324 second
+                    alliance.m_vWarState = 0;
+                    alliance.m_vActiveWarId = 0;
+                    new AllianceFullEntryMessage(this.Device, alliance).Send();
                     new AllianceStreamMessage(this.Device, alliance).Send();
                 }
                 else

@@ -44,17 +44,9 @@ namespace CSS.Packets.Messages.Client
 
                 if (State == 1)
                 {
-                    // Player is returning to their WAR BASE village (in WAR_EMODE).
-                    // PlayerState must be set BEFORE building 24335 so AllianceWarMapDataMessage
-                    // knows NOT to cap the state (the banner is safe here because the player
-                    // IS already in the roster — they own this war village).
-                    this.Device.PlayerState = Logic.Enums.State.WAR_EMODE;
+                    this.Device.PlayerState = Logic.Enums.State.LOGGED;
                     this.Device.Player.Tick();
                     new OwnHomeDataMessage(this.Device, this.Device.Player).Send();
-
-                    var war = ClanWarManager.GetWarByClanId(this.Device.Player.Avatar.AllianceId);
-                    // Always send 24335; in WAR_EMODE the player IS in the roster (their own base)
-                    new AllianceWarMapDataMessage(this.Device, war).Send();
                 }
                 else
                 {
@@ -64,18 +56,9 @@ namespace CSS.Packets.Messages.Client
                     new OwnHomeDataMessage(Device, this.Device.Player).Send();
                     if (alliance != null)
                     {
-                        ClanWar war = ClanWarManager.GetWarByClanId(alliance.m_vAllianceId);
-                        if (war != null)
-                        {
-                            alliance.m_vWarState = (int)war.State;
-                            alliance.m_vActiveWarId = war.WarId;
-                        }
-                        // CRITICAL ORDER: 24335 before 24324 (war button byte 0x29 fix)
-                        if (war != null && war.State != ClanWarState.NOT_IN_WAR && war.State != ClanWarState.SEARCHING)
-                        {
-                            new AllianceWarMapDataMessage(Device, war).Send(); // 24335 first
-                        }
-                        new AllianceFullEntryMessage(Device, alliance).Send(); // 24324 second
+                        alliance.m_vWarState = 0;
+                        alliance.m_vActiveWarId = 0;
+                        new AllianceFullEntryMessage(Device, alliance).Send();
                         new AllianceStreamMessage(Device, alliance).Send();
                     }
                 }

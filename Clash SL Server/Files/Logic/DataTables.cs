@@ -43,6 +43,12 @@ namespace CSS.Files.Logic
 
         public DataTable GetTable(int i) => m_vDataTables[i];
 
+        public VariablesData GetVariableByName(string name)
+        {
+            var dt = m_vDataTables[40];
+            return (VariablesData) dt.GetDataByName(name);
+        }
+
         public void InitDataTable(CSVTable t, int index)
         {
             if (index == 13)

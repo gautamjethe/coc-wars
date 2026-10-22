@@ -51,12 +51,9 @@ namespace CSS.Packets.Messages.Client
 
                 if (alliance != null)
                 {
+                    alliance.m_vWarState = 0;
+                    alliance.m_vActiveWarId = 0;
                     new AllianceFullEntryMessage(this.Device, alliance).Send();
-                }
-
-                if (war != null)
-                {
-                    new AllianceWarDataMessage(this.Device, war).Send();
                 }
             }
             catch (Exception ex)
