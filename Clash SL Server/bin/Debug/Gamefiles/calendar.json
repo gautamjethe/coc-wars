@@ -7,8 +7,8 @@
       "eventEntryName": "CollectorBoost",
       "inboxEntryId": 1,
       "visibleTime": "20261022T000000.000Z",
-      "startTime": "20261023T000000.000Z",
-      "endTime": "20261029T235959.000Z",
+      "startTime": "20261022T183000.000Z",
+      "endTime": "20261029T182959.000Z",
       "showUpcoming": 1,
       "functions": [
         { "name": "BuildingBoost", "parameters": [ "1000002", "1" ] },
@@ -23,8 +23,8 @@
       "eventEntryName": "StarBonus",
       "inboxEntryId": 1,
       "visibleTime": "20261022T000000.000Z",
-      "startTime": "20261023T000000.000Z",
-      "endTime": "20261031T235959.000Z",
+      "startTime": "20261022T183000.000Z",
+      "endTime": "20261031T182959.000Z",
       "showUpcoming": 1,
       "functions": [
         { "name": "StarBonusMultiplier", "parameters": [ "4" ] }
@@ -37,8 +37,8 @@
       "eventEntryName": "TroopDiscountPekka",
       "inboxEntryId": 1,
       "visibleTime": "20261022T000000.000Z",
-      "startTime": "20261025T000000.000Z",
-      "endTime": "20261102T235959.000Z",
+      "startTime": "20261024T183000.000Z",
+      "endTime": "20261102T182959.000Z",
       "showUpcoming": 1,
       "functions": [
         { "name": "TroopDiscount", "parameters": [ "4000009", "50" ] }
@@ -51,8 +51,8 @@
       "eventEntryName": "ChristmasUnit",
       "inboxEntryId": 1,
       "visibleTime": "20261022T000000.000Z",
-      "startTime": "20261101T000000.000Z",
-      "endTime": "20261109T235959.000Z",
+      "startTime": "20261031T183000.000Z",
+      "endTime": "20261109T182959.000Z",
       "showUpcoming": 1,
       "functions": [
         { "name": "EnableTroop", "parameters": [ "4000030" ] }
