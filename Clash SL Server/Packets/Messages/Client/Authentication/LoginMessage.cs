@@ -186,23 +186,8 @@ namespace CSS.Packets.Messages.Client
                         return;
                     }
 
-                    string serverVersion = ClientVersion;
-                    string clientVersion = ConfigurationManager.AppSettings["ClientVersion"];
+                    Logger.Write($"Client version: {ClientVersion} (version check disabled)");
 
-                    string[] sv = serverVersion.Split('.');
-                    string[] cv = clientVersion.Split('.');
-
-                    Console.WriteLine("Client version : " + clientVersion);
-
-                    if (cv[0] != sv[0] || cv[1] != sv[1] || cv[2] != sv[2])
-                    {
-                        new LoginFailedMessage(Device)
-                        {
-                            ErrorCode = 8,
-                            UpdateUrl = Utils.ParseConfigString("UpdateUrl")
-                        }.Send();
-                        return;
-                    }
 
                     if (Convert.ToBoolean(ConfigurationManager.AppSettings["useCustomPatch"]) &&
                         MasterHash != ObjectManager.FingerPrint.sha)
