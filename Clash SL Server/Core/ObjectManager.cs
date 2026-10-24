@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using CSS.Files;
 using CSS.Logic;
 using Timer = System.Threading.Timer;
@@ -50,7 +51,7 @@ namespace CSS.Core
             }
 
             LoadNpcLevels();
-            //LoadRandomBase(); // Useless atm
+            LoadRandomBase();
 
             TimerReferenceRedis = new Timer(SaveRedis, null, 10000, 40000);
             TimerReferenceMysql = new Timer(SaveMysql, null, 40000, 27000);
@@ -124,8 +125,80 @@ namespace CSS.Core
 
         public static Level GetRandomOnlinePlayer()
         {
+            if (ResourcesManager.m_vInMemoryLevels.Count == 0) return null;
             int index = new Random().Next(0, ResourcesManager.m_vInMemoryLevels.Count);
             return ResourcesManager.m_vInMemoryLevels.Values.ToList().ElementAt(index);
+        }
+
+        public static async Task<Level> GetRandomOpponent(long attackerId)
+        {
+            try
+            {
+                Random rnd = new Random();
+
+                // 1. Fetch all registered players from database
+                List<long> dbPlayerIds = m_vDatabase != null ? m_vDatabase.GetAllPlayerIds() : new List<long>();
+                dbPlayerIds.RemoveAll(id => id == attackerId);
+
+                // 2. Also check in-memory players excluding attacker
+                List<Level> inMemoryOpponents = ResourcesManager.m_vInMemoryLevels.Values
+                    .Where(p => p != null && p.Avatar != null && p.Avatar.UserId != attackerId)
+                    .ToList();
+
+                // 3. If other database players exist, pick one at random regardless of trophies/TH/level
+                if (dbPlayerIds.Count > 0)
+                {
+                    dbPlayerIds = dbPlayerIds.OrderBy(_ => rnd.Next()).ToList();
+                    foreach (long candidateId in dbPlayerIds.Take(5))
+                    {
+                        Level opponent = await ResourcesManager.GetPlayer(candidateId);
+                        if (opponent != null && opponent.Avatar != null && opponent.Avatar.UserId != attackerId)
+                        {
+                            return opponent;
+                        }
+                    }
+                }
+
+                // 4. Fallback to in-memory opponent if available
+                if (inMemoryOpponents.Count > 0)
+                {
+                    return inMemoryOpponents[rnd.Next(inMemoryOpponents.Count)];
+                }
+
+                // 5. Fallback to pre-generated PVP bases (e.g. if single player on server)
+                return GetRandomPvpBase(attackerId);
+            }
+            catch (Exception ex)
+            {
+                Error($"GetRandomOpponent error: {ex.Message}");
+                return GetRandomPvpBase(attackerId);
+            }
+        }
+
+        public static Level GetRandomPvpBase(long attackerId)
+        {
+            if (m_vRandomBases == null || m_vRandomBases.Count == 0)
+            {
+                LoadRandomBase();
+            }
+            if (m_vRandomBases == null || m_vRandomBases.Count == 0)
+            {
+                return null;
+            }
+
+            Random rnd = new Random();
+            int idx = rnd.Next(0, m_vRandomBases.Count);
+            string baseJson = m_vRandomBases[idx];
+
+            Level defender = new Level();
+            defender.Avatar.UserId = 9000000 + idx;
+            defender.Avatar.SetName("Goblin Chief #" + (idx + 1));
+            defender.Avatar.SetScore(rnd.Next(400, 3200));
+            defender.Avatar.SetTownHallLevel(rnd.Next(6, 11));
+            defender.Avatar.AllianceId = 0;
+            defender.Avatar.LastTickSaved = DateTime.UtcNow;
+            defender.LoadFromJSON(baseJson);
+            return defender;
         }
 
         public static void LoadNpcLevels()
@@ -146,14 +219,35 @@ namespace CSS.Core
             Say($"NPC Levels  have been succesfully loaded. ({Count})");
         }
 
-        /*public static void LoadRandomBase()
+        public static void LoadRandomBase()
         {
-            m_vRandomBaseAmount = Directory.GetFiles(@"Gamefiles/level/PVP", "Base*.json").Count();
-            for (int i = 0; i < m_vRandomBaseAmount; i++)
-                using (StreamReader sr2 = new StreamReader(@"Gamefiles/level/PVP/Base" + (i + 1) + ".json"))
-                    m_vRandomBases.Add(i, sr2.ReadToEnd());
-            Say("PVP Levels  have been succesfully loaded.");
-        }*/
+            try
+            {
+                string pvpDir = @"Gamefiles/level/PVP";
+                if (!Directory.Exists(pvpDir) && Directory.Exists(@"bin/Debug/Gamefiles/level/PVP"))
+                {
+                    pvpDir = @"bin/Debug/Gamefiles/level/PVP";
+                }
+                if (Directory.Exists(pvpDir))
+                {
+                    string[] files = Directory.GetFiles(pvpDir, "Base*.json");
+                    m_vRandomBaseAmount = files.Length;
+                    m_vRandomBases.Clear();
+                    for (int i = 0; i < files.Length; i++)
+                    {
+                        using (StreamReader sr2 = new StreamReader(files[i]))
+                        {
+                            m_vRandomBases.Add(i, sr2.ReadToEnd());
+                        }
+                    }
+                    Say($"PVP Levels  have been succesfully loaded. ({m_vRandomBases.Count})");
+                }
+            }
+            catch (Exception ex)
+            {
+                Error($"Failed to load PVP levels: {ex.Message}");
+            }
+        }
 
         public static void RemoveInMemoryAlliance(long id)
         {

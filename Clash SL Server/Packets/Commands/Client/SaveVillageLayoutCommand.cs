@@ -16,5 +16,13 @@ namespace CSS.Packets.Commands.Client
             this.Reader.ReadInt32();
             this.Reader.ReadInt32();
         }
+
+        internal override void Process()
+        {
+            if (this.Device?.Player != null)
+            {
+                CSS.Core.Resources.DatabaseManager.Save(this.Device.Player);
+            }
+        }
     }
 }

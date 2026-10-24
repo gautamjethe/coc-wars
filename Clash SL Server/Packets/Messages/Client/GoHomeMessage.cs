@@ -62,6 +62,11 @@ namespace CSS.Packets.Messages.Client
                         new AllianceStreamMessage(Device, alliance).Send();
                     }
                 }
+
+                if (this.Device?.Player != null)
+                {
+                    await CSS.Core.Resources.DatabaseManager.Save(this.Device.Player);
+                }
             }
             catch (Exception)
             {

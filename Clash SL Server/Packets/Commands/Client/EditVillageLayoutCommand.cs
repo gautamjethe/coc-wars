@@ -25,11 +25,14 @@ namespace CSS.Packets.Commands.Client
 
         internal override void Process()
         {
-            /*if (Layout != level.Avatar.GetActiveLayout())
+            if (this.Device?.Player != null)
             {
-                GameObject go = level.GameObjectManager.GetGameObjectByID(BuildingID);
-                go.SetPositionXY(X, Y, Layout);
-            } */
+                CSS.Logic.GameObject go = this.Device.Player.GameObjectManager.GetGameObjectByID(BuildingID);
+                if (go != null)
+                {
+                    go.SetPositionXY(X, Y, Layout);
+                }
+            }
         }
 
     }

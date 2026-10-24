@@ -49,17 +49,14 @@ namespace CSS.Core
         {
             try
             {
-                Device _Client = null;
-                if(_Client != null)
+                if (m_vClients.TryRemove(socketHandle, out Device _Client))
                 {
-                    m_vClients.TryRemove(socketHandle, out _Client);
-                    if (_Client.Player != null)
+                    if (_Client?.Player != null)
                     {
                         LogPlayerOut(_Client.Player);
                         Console.WriteLine("Player Logout");
                     }
                 }
-                
             }
             catch (Exception e)
             {

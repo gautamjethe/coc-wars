@@ -16,5 +16,14 @@ namespace CSS.Packets.Commands.Client
         {
             this.Layout = this.Reader.ReadInt32();
         }
+
+        internal override void Process()
+        {
+            if (this.Device?.Player != null)
+            {
+                this.Device.Player.Avatar.m_vActiveLayout = this.Layout;
+                CSS.Core.Resources.DatabaseManager.Save(this.Device.Player);
+            }
+        }
     }
 }

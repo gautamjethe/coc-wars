@@ -57,9 +57,14 @@ namespace CSS.Packets.Commands.Client
                         }
                     }*/
 
-                    // New Method
+                    // Save attacker's current village layout and stats before battle
+                    if (this.Device?.Player != null)
+                    {
+                        await Resources.DatabaseManager.Save(this.Device.Player);
+                    }
+
                     this.Device.PlayerState = State.SEARCH_BATTLE;
-                    Level Defender = ObjectManager.GetRandomOnlinePlayer();
+                    Level Defender = await ObjectManager.GetRandomOpponent(this.Device.Player.Avatar.UserId);
                     if (Defender != null)
                     {
                         Defender.Tick();
