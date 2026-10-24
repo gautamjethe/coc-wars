@@ -297,17 +297,6 @@ namespace CSS.Logic
                 }
                 jsonObject.Add("boost_endTime", m_vBoostEndTime);
             }
-            var bd = GetData() as BuildingData;
-            if (bd != null && (!string.IsNullOrEmpty(bd.ToggleAttackModeEffect) || bd.AltAttackMode))
-            {
-                if (jsonObject["attack_mode"] == null)
-                {
-                    jsonObject.Add("attack_mode", AttackMode);
-                    jsonObject.Add("attack_mode_war", AttackModeWar);
-                    jsonObject.Add("attack_mode_draft", AttackMode);
-                    jsonObject.Add("attack_mode_draft_war", AttackModeWar);
-                }
-            }
             base.Save(jsonObject);
             return jsonObject;
         }

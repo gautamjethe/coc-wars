@@ -40,7 +40,10 @@ namespace CSS.Packets.Commands.Client
                     var combat = go.GetComponent(1, true) as CombatComponent;
                     if (combat != null)
                     {
-                        combat.ToggleAttackMode();
+                        if (ci != null)
+                            combat.SetAttackMode(ci.AttackMode);
+                        else
+                            combat.ToggleAttackMode();
                     }
 
                     Logger.Write($"[CMD] RotateDefense executed for Building {this.BuildingID}");

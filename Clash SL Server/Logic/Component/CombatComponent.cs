@@ -70,14 +70,14 @@ namespace CSS.Logic
 
         public override JObject Save(JObject jsonObject)
         {
-            jsonObject.Add("ammo", m_vAmmo);
+            jsonObject["ammo"] = m_vAmmo;
             var bd = GetParent()?.GetData() as BuildingData;
             if (bd != null && (!string.IsNullOrEmpty(bd.ToggleAttackModeEffect) || bd.AltAttackMode))
             {
-                jsonObject.Add("attack_mode", AttackMode);
-                jsonObject.Add("attack_mode_war", AttackModeWar);
-                jsonObject.Add("attack_mode_draft", AttackMode);
-                jsonObject.Add("attack_mode_draft_war", AttackModeWar);
+                jsonObject["attack_mode"] = AttackMode;
+                jsonObject["attack_mode_war"] = AttackModeWar;
+                jsonObject["attack_mode_draft"] = AttackMode;
+                jsonObject["attack_mode_draft_war"] = AttackModeWar;
             }
             return jsonObject;
         }
