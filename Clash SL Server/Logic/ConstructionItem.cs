@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Newtonsoft.Json.Linq;
 using CSS.Core;
 using CSS.Files.Logic;
@@ -26,6 +26,10 @@ namespace CSS.Logic
         public bool IsBoosted { get; set; }
 
         public int UpgradeLevel { get; set; }
+
+        public bool AttackMode { get; set; }
+
+        public bool AttackModeWar { get; set; }
 
         public void BoostBuilding()
         {
@@ -261,6 +265,19 @@ namespace CSS.Logic
                 IsBoosted = true;
             }
 
+            if (jsonObject["attack_mode"] != null)
+            {
+                AttackMode = jsonObject["attack_mode"].ToObject<bool>();
+            }
+            if (jsonObject["attack_mode_war"] != null)
+            {
+                AttackModeWar = jsonObject["attack_mode_war"].ToObject<bool>();
+            }
+            else
+            {
+                AttackModeWar = AttackMode;
+            }
+
             SetUpgradeLevel(UpgradeLevel);
             base.Load(jsonObject);
         }
@@ -279,6 +296,17 @@ namespace CSS.Logic
                     jsonObject.Add("boost_t", (int) (m_vBoostEndTime - Avatar.Avatar.LastTickSaved).TotalSeconds);
                 }
                 jsonObject.Add("boost_endTime", m_vBoostEndTime);
+            }
+            var bd = GetData() as BuildingData;
+            if (bd != null && (!string.IsNullOrEmpty(bd.ToggleAttackModeEffect) || bd.AltAttackMode))
+            {
+                if (jsonObject["attack_mode"] == null)
+                {
+                    jsonObject.Add("attack_mode", AttackMode);
+                    jsonObject.Add("attack_mode_war", AttackModeWar);
+                    jsonObject.Add("attack_mode_draft", AttackMode);
+                    jsonObject.Add("attack_mode_draft_war", AttackModeWar);
+                }
             }
             base.Save(jsonObject);
             return jsonObject;

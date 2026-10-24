@@ -78,7 +78,18 @@ namespace CSS.Packets.Messages.Client
                                 Logger.Write("Previous command was " + this.LCommands.Last().Identifier + ". [" + (_Index + 1) + " / " + this.Count + "]");
                             Console.ResetColor();
                             break;
+                        }
+                    }
 
+                    if (this.LCommands.Count > 0 && this.Device?.Player != null)
+                    {
+                        try
+                        {
+                            CSS.Core.Resources.DatabaseManager.Save(this.Device.Player);
+                        }
+                        catch (Exception dbEx)
+                        {
+                            Logger.Write($"[CMD] DatabaseManager.Save error: {dbEx.Message}");
                         }
                     }
                 }
