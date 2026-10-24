@@ -1345,6 +1345,7 @@
     <Compile Include="Packets\Messages\Client\PromoteAllianceMemberMessage.cs" />
     <Compile Include="Logic\Alliance.cs" />
     <Compile Include="Core\ObjectManager.cs" />
+    <Compile Include="Core\DailyMaintenanceManager.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Tools\patch_generator.bat">

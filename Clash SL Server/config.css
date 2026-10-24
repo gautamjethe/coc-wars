@@ -21,6 +21,13 @@
       <!-- Don't forget the trailing slash -->
   <add key="maintenanceTimeleft" value="0" />
       <!-- Please set the time in seconds like 1200 seconds for 20 minutes -->
+  <!-- ________________________________ DAILY MAINTENANCE ________________________________ -->
+  <add key="DailyMaintenanceEnabled" value="true" />
+      <!-- Automated daily maintenance schedule in IST -->
+  <add key="DailyMaintenanceHourIST" value="11" />
+  <add key="DailyMaintenanceMinuteIST" value="0" />
+  <add key="DailyMaintenanceDurationMinutes" value="30" />
+  <!-- ___________________________________________________________________________________ -->
   <add key="AdminMessage" value="Welcome to Clash Of SL ! Visit http://facebook.com/skyprolk for more Infos"/>
       <!-- The AdminMessage will be shown in the Inbox of the Players-->
   <add key="CustomMaintenance" value=""/>

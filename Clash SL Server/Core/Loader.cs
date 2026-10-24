@@ -1,4 +1,4 @@
-﻿namespace CSS.Core
+namespace CSS.Core
 {
     using CSS.Core.Checker;
     using CSS.Database;
@@ -54,6 +54,8 @@
             // User
             this.Parser = new ParserThread();
 
+            // Daily Maintenance (11:00 AM IST)
+            DailyMaintenanceManager.Init();
         }
     }
 }

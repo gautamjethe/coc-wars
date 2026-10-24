@@ -287,10 +287,17 @@ namespace CSS.Helpers
             Say("Maintenance Mode has been stopped.");
         }
 
-        public static bool GetMaintenanceMode() => MaintenanceMode;
+        public static bool GetMaintenanceMode() => MaintenanceMode || DailyMaintenanceManager.IsMaintenanceActive();
         
         public static void SetMaintenanceMode(bool m) => MaintenanceMode = m;
 
-        public static int GetMaintenanceTime() => Time;
+        public static int GetMaintenanceTime()
+        {
+            if (DailyMaintenanceManager.IsMaintenanceActive())
+            {
+                return DailyMaintenanceManager.GetRemainingSeconds();
+            }
+            return Time;
+        }
     }
 }
