@@ -9,12 +9,15 @@ namespace CSS.Packets.Commands.Client
         {
         }
 
+        public uint Tick { get; set; }
+        public int LayoutId { get; set; }
+        public bool War { get; set; }
+
         internal override void Decode()
         {
-            this.Reader.Read();
-            this.Reader.ReadInt32();
-            this.Reader.ReadInt32();
-            this.Reader.ReadInt32();
+            this.Tick = this.Reader.ReadUInt32();
+            this.LayoutId = this.Reader.ReadInt32();
+            this.War = this.Reader.ReadBoolean();
         }
 
         internal override void Process()

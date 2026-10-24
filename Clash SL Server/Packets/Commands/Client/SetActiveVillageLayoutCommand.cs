@@ -15,6 +15,18 @@ namespace CSS.Packets.Commands.Client
         internal override void Decode()
         {
             this.Layout = this.Reader.ReadInt32();
+            if (this.Reader.BaseStream.Position + 4 <= this.Reader.BaseStream.Length)
+            {
+                this.Reader.ReadInt32();
+            }
+            if (this.Reader.BaseStream.Position + 1 <= this.Reader.BaseStream.Length)
+            {
+                this.Reader.ReadBoolean();
+            }
+            if (this.Reader.BaseStream.Position + 4 <= this.Reader.BaseStream.Length)
+            {
+                this.Reader.ReadUInt32();
+            }
         }
 
         internal override void Process()
