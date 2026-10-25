@@ -175,6 +175,24 @@ CREATE TABLE `ClanWarMember` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 CREATE OR REPLACE VIEW `clanwarmember` AS SELECT * FROM `ClanWarMember`;
 
+--
+-- Table structure for table `LeaderboardSeason`
+--
+
+DROP VIEW IF EXISTS `leaderboardseason`;
+DROP TABLE IF EXISTS `LeaderboardSeason`;
+SET character_set_client = utf8mb4 ;
+CREATE TABLE `LeaderboardSeason` (
+  `SeasonType` varchar(32) NOT NULL,
+  `SeasonId` int(11) NOT NULL DEFAULT '1',
+  `StartTime` datetime NOT NULL,
+  `EndTime` datetime NOT NULL,
+  `DurationSeconds` int(11) NOT NULL,
+  `LastUpdateTime` datetime DEFAULT NULL,
+  PRIMARY KEY (`SeasonType`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE OR REPLACE VIEW `leaderboardseason` AS SELECT * FROM `LeaderboardSeason`;
+
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
 /*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;

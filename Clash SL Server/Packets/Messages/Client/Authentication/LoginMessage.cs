@@ -304,15 +304,17 @@ namespace CSS.Packets.Messages.Client
                     }
                     else
                     {
-                        Console.WriteLine($"[AUTH] UserID {UserID} token mismatch (DB: {level.Avatar.UserToken}, Client: {UserToken}). Re-initializing account.");
-                        NewUser();
+                        Console.WriteLine($"[AUTH] UserID {UserID} token mismatch (DB: {level.Avatar.UserToken}, Client: {UserToken}). Updating token.");
+                        level.Avatar.UserToken = UserToken;
+                        await Resources.DatabaseManager.Save(level);
+                        LogUser();
                         return;
                     }
                 }
                 else
                 {
-                    Console.WriteLine($"[AUTH] UserID {UserID} not found in database. Initializing new account.");
-                    NewUser();
+                    Console.WriteLine($"[AUTH] UserID {UserID} not found in database. Initializing account for UserID {UserID}.");
+                    NewUser(UserID, UserToken);
                     return;
                 }
             } 
@@ -322,9 +324,9 @@ namespace CSS.Packets.Messages.Client
             }
         }
 
-        private void NewUser()
+        private void NewUser(long seed = 0, string token = null)
         {
-            level = ObjectManager.CreateAvatar(0, null);
+            level = ObjectManager.CreateAvatar(seed, token);
             if (string.IsNullOrEmpty(this.level.Avatar.UserToken))
             {
                 this.level.Avatar.UserToken = "";

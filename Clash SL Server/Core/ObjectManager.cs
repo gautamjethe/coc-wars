@@ -92,7 +92,14 @@ namespace CSS.Core
                 seed = m_vAvatarSeed;
             }
             pl = new Level(seed, token);
-            m_vAvatarSeed++;
+            if (seed >= m_vAvatarSeed)
+            {
+                m_vAvatarSeed = seed + 1;
+            }
+            else
+            {
+                m_vAvatarSeed++;
+            }
             pl.LoadFromJSON(m_vHomeDefault);
             m_vDatabase.CreateAccount(pl);
             return pl;
