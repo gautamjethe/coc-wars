@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using CSS.Core;
 using CSS.Core.Network;
@@ -25,6 +26,12 @@ namespace CSS.Packets.Messages.Client
 
         internal override void Process()
         {
+            if (DailyMaintenanceManager.IsAttackDisabled())
+            {
+                new ShutdownStartedMessage(this.Device) { Code = Math.Max(1, DailyMaintenanceManager.GetShutdownRemainingSeconds()) }.Send();
+                return;
+            }
+
             if (this.Device.PlayerState == State.IN_BATTLE)
             {
                 ResourcesManager.DisconnectClient(Device);

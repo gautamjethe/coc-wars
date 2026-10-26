@@ -225,6 +225,11 @@ namespace CSS.Packets.Messages.Client
             new OwnHomeDataMessage(this.Device, level).Send();
             new BookmarkMessage(this.Device).Send();
 
+            if (DailyMaintenanceManager.IsWarningActive())
+            {
+                new ShutdownStartedMessage(this.Device) { Code = DailyMaintenanceManager.GetWarningRemainingSeconds() }.Send();
+            }
+
             if (level.Avatar.AllianceId > 0)
             {
                 Alliance alliance = ObjectManager.GetAlliance(level.Avatar.AllianceId);

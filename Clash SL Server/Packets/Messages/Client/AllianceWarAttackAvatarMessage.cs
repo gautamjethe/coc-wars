@@ -61,6 +61,12 @@ namespace CSS.Packets.Messages.Client
             {
                 if (this.Device.Player == null) return;
 
+                if (DailyMaintenanceManager.IsAttackDisabled())
+                {
+                    new ShutdownStartedMessage(this.Device) { Code = Math.Max(1, DailyMaintenanceManager.GetShutdownRemainingSeconds()) }.Send();
+                    return;
+                }
+
                 long allianceId = this.Device.Player.Avatar.AllianceId;
                 if (allianceId <= 0)
                 {

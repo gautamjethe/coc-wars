@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -21,6 +21,12 @@ namespace CSS.Packets.Messages.Client
 
         internal override async void Process()
         {
+            if (DailyMaintenanceManager.IsAttackDisabled())
+            {
+                new ShutdownStartedMessage(this.Device) { Code = Math.Max(1, DailyMaintenanceManager.GetShutdownRemainingSeconds()) }.Send();
+                return;
+            }
+
             ClientAvatar p = this.Device.Player.Avatar;
             if (this.Device.PlayerState == Logic.Enums.State.IN_BATTLE)
             {

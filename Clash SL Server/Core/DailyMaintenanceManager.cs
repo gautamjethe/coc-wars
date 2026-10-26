@@ -3,6 +3,7 @@ using System.Configuration;
 using System.Linq;
 using System.Timers;
 using CSS.Core.Network;
+using CSS.Helpers;
 using CSS.Logic;
 using CSS.Packets.Messages.Server;
 
@@ -14,6 +15,7 @@ namespace CSS.Core
         private static bool _isMaintenanceActive;
         private static bool _warningSentToday;
         private static DateTime _lastWarningDate = DateTime.MinValue;
+        private static DateTime _lastWarningBroadcast = DateTime.MinValue;
 
         private static bool _enabled = true;
         private static int _startHourIST = 11;
@@ -70,52 +72,45 @@ namespace CSS.Core
             CheckSchedule();
         }
 
+        public static DateTime GetIstNow() => DateTime.UtcNow.AddHours(5.5);
+
         private static void CheckSchedule()
         {
             if (!_enabled)
                 return;
 
-            DateTime istNow = DateTime.UtcNow.AddHours(5.5);
-            TimeSpan istTime = istNow.TimeOfDay;
-
-            TimeSpan maintenanceStart = new TimeSpan(_startHourIST, _startMinuteIST, 0);
-            TimeSpan maintenanceEnd = maintenanceStart.Add(TimeSpan.FromMinutes(_durationMinutes));
-            TimeSpan warningStart = maintenanceStart.Subtract(TimeSpan.FromMinutes(5));
+            DateTime istNow = GetIstNow();
+            DateTime todayStart = new DateTime(istNow.Year, istNow.Month, istNow.Day, _startHourIST, _startMinuteIST, 0);
+            DateTime todayEnd = todayStart.AddMinutes(_durationMinutes);
+            DateTime todayWarning = todayStart.AddMinutes(-5);
 
             // 1. 5-Minute Warning Phase (10:55 AM IST to 11:00 AM IST)
-            if (istTime >= warningStart && istTime < maintenanceStart)
+            if (istNow >= todayWarning && istNow < todayStart)
             {
-                if (!_warningSentToday || _lastWarningDate.Date != istNow.Date)
-                {
-                    int secondsUntilStart = (int)Math.Max(1, (maintenanceStart - istTime).TotalSeconds);
-                    foreach (Level p in ResourcesManager.m_vOnlinePlayers.ToList())
-                    {
-                        if (p?.Client != null)
-                        {
-                            try
-                            {
-                                new ShutdownStartedMessage(p.Client) { Code = secondsUntilStart }.Send();
-                            }
-                            catch
-                            {
-                            }
-                        }
-                    }
+                int secondsUntilStart = (int)Math.Max(1, (todayStart - istNow).TotalSeconds);
 
-                    _warningSentToday = true;
-                    _lastWarningDate = istNow.Date;
-                    Logger.Write($"[MAINTENANCE] 5-minute maintenance countdown broadcasted to online players ({secondsUntilStart}s).");
+                // Broadcast on first entry, and rebroadcast every 30 seconds to keep all online and reconnected players synced
+                if (!_warningSentToday || (istNow - _lastWarningBroadcast).TotalSeconds >= 30)
+                {
+                    BroadcastWarning(secondsUntilStart);
+                    _lastWarningBroadcast = istNow;
+
+                    if (!_warningSentToday)
+                    {
+                        _warningSentToday = true;
+                        _lastWarningDate = istNow.Date;
+                        Logger.Write($"[MAINTENANCE] 5-minute maintenance countdown broadcasted to online players ({secondsUntilStart}s).");
+                    }
                 }
             }
-
             // 2. Maintenance Active Phase (11:00 AM IST to 11:30 AM IST)
-            if (istTime >= maintenanceStart && istTime < maintenanceEnd)
+            else if (istNow >= todayStart && istNow < todayEnd)
             {
                 if (!_isMaintenanceActive)
                 {
                     _isMaintenanceActive = true;
                     Console.ForegroundColor = ConsoleColor.Yellow;
-                    Logger.Write($"[MAINTENANCE] >>> Daily Maintenance started at {istNow:HH:mm:ss} IST! Scheduled until {_startHourIST:D2}:{_startMinuteIST + _durationMinutes:D2} IST. <<<");
+                    Logger.Write($"[MAINTENANCE] >>> Daily Maintenance started at {istNow:HH:mm:ss} IST! Scheduled until {todayEnd:HH:mm:ss} IST. <<<");
                     Console.ResetColor();
 
                     // Disconnect all connected players
@@ -166,6 +161,52 @@ namespace CSS.Core
             }
         }
 
+        public static void BroadcastWarning(int secondsUntilStart)
+        {
+            foreach (Level p in ResourcesManager.m_vOnlinePlayers.ToList())
+            {
+                if (p?.Client != null)
+                {
+                    try
+                    {
+                        new ShutdownStartedMessage(p.Client) { Code = secondsUntilStart }.Send();
+                    }
+                    catch
+                    {
+                    }
+                }
+            }
+        }
+
+        public static bool IsWarningActive()
+        {
+            if (!_enabled)
+                return false;
+
+            DateTime istNow = GetIstNow();
+            DateTime todayStart = new DateTime(istNow.Year, istNow.Month, istNow.Day, _startHourIST, _startMinuteIST, 0);
+            DateTime todayWarning = todayStart.AddMinutes(-5);
+
+            return istNow >= todayWarning && istNow < todayStart;
+        }
+
+        public static int GetWarningRemainingSeconds()
+        {
+            if (!_enabled)
+                return 0;
+
+            DateTime istNow = GetIstNow();
+            DateTime todayStart = new DateTime(istNow.Year, istNow.Month, istNow.Day, _startHourIST, _startMinuteIST, 0);
+            DateTime todayWarning = todayStart.AddMinutes(-5);
+
+            if (istNow >= todayWarning && istNow < todayStart)
+            {
+                return (int)Math.Max(1, (todayStart - istNow).TotalSeconds);
+            }
+
+            return 0;
+        }
+
         public static bool IsMaintenanceActive()
         {
             if (!_enabled)
@@ -179,18 +220,30 @@ namespace CSS.Core
             if (!_enabled)
                 return 0;
 
-            DateTime istNow = DateTime.UtcNow.AddHours(5.5);
-            TimeSpan istTime = istNow.TimeOfDay;
+            DateTime istNow = GetIstNow();
+            DateTime todayStart = new DateTime(istNow.Year, istNow.Month, istNow.Day, _startHourIST, _startMinuteIST, 0);
+            DateTime todayEnd = todayStart.AddMinutes(_durationMinutes);
 
-            TimeSpan maintenanceStart = new TimeSpan(_startHourIST, _startMinuteIST, 0);
-            TimeSpan maintenanceEnd = maintenanceStart.Add(TimeSpan.FromMinutes(_durationMinutes));
-
-            if (istTime >= maintenanceStart && istTime < maintenanceEnd)
+            if (istNow >= todayStart && istNow < todayEnd)
             {
-                return (int)Math.Max(1, (maintenanceEnd - istTime).TotalSeconds);
+                return (int)Math.Max(1, (todayEnd - istNow).TotalSeconds);
             }
 
             return 0;
+        }
+
+        public static bool IsAttackDisabled()
+        {
+            return IsWarningActive() || ParserThread.GetMaintenanceMode();
+        }
+
+        public static int GetShutdownRemainingSeconds()
+        {
+            if (IsWarningActive())
+                return GetWarningRemainingSeconds();
+            if (IsMaintenanceActive())
+                return GetRemainingSeconds();
+            return ParserThread.GetMaintenanceTime();
         }
     }
 }

@@ -32,6 +32,12 @@ namespace CSS.Packets.Messages.Client
         {
             try
             {
+                if (DailyMaintenanceManager.IsAttackDisabled())
+                {
+                    new ShutdownStartedMessage(this.Device) { Code = Math.Max(1, DailyMaintenanceManager.GetShutdownRemainingSeconds()) }.Send();
+                    return;
+                }
+
                 if (this.Device.PlayerState == Logic.Enums.State.IN_BATTLE)
                 {
                     ResourcesManager.DisconnectClient(Device);
