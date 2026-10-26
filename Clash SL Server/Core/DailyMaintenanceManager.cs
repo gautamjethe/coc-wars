@@ -21,6 +21,7 @@ namespace CSS.Core
         private static int _startHourIST = 11;
         private static int _startMinuteIST = 0;
         private static int _durationMinutes = 30;
+        private static int _warningMinutes = 10;
 
         public static void Init()
         {
@@ -34,7 +35,7 @@ namespace CSS.Core
             // Run an immediate check on startup
             CheckSchedule();
 
-            Logger.Write($"[MAINTENANCE] DailyMaintenanceManager initialized. Scheduled: {_startHourIST:D2}:{_startMinuteIST:D2} IST daily for {_durationMinutes} mins (Enabled: {_enabled}).");
+            Logger.Write($"[MAINTENANCE] DailyMaintenanceManager initialized. Scheduled: {_startHourIST:D2}:{_startMinuteIST:D2} IST daily for {_durationMinutes} mins (Warning: {_warningMinutes} mins prior, Enabled: {_enabled}).");
         }
 
         private static void LoadConfig()
@@ -60,10 +61,15 @@ namespace CSS.Core
                 {
                     _durationMinutes = Convert.ToInt32(ConfigurationManager.AppSettings["DailyMaintenanceDurationMinutes"]);
                 }
+
+                if (!string.IsNullOrEmpty(ConfigurationManager.AppSettings["DailyMaintenanceWarningMinutes"]))
+                {
+                    _warningMinutes = Convert.ToInt32(ConfigurationManager.AppSettings["DailyMaintenanceWarningMinutes"]);
+                }
             }
             catch (Exception ex)
             {
-                Logger.Write($"[MAINTENANCE] Error loading config: {ex.Message}. Using default 11:00 AM IST for 30 mins.");
+                Logger.Write($"[MAINTENANCE] Error loading config: {ex.Message}. Using default 11:00 AM IST for 30 mins (10 mins warning).");
             }
         }
 
@@ -82,9 +88,9 @@ namespace CSS.Core
             DateTime istNow = GetIstNow();
             DateTime todayStart = new DateTime(istNow.Year, istNow.Month, istNow.Day, _startHourIST, _startMinuteIST, 0);
             DateTime todayEnd = todayStart.AddMinutes(_durationMinutes);
-            DateTime todayWarning = todayStart.AddMinutes(-5);
+            DateTime todayWarning = todayStart.AddMinutes(-_warningMinutes);
 
-            // 1. 5-Minute Warning Phase (10:55 AM IST to 11:00 AM IST)
+            // 1. Warning Phase (e.g. 10:50 AM IST to 11:00 AM IST)
             if (istNow >= todayWarning && istNow < todayStart)
             {
                 int secondsUntilStart = (int)Math.Max(1, (todayStart - istNow).TotalSeconds);
@@ -99,7 +105,7 @@ namespace CSS.Core
                     {
                         _warningSentToday = true;
                         _lastWarningDate = istNow.Date;
-                        Logger.Write($"[MAINTENANCE] 5-minute maintenance countdown broadcasted to online players ({secondsUntilStart}s).");
+                        Logger.Write($"[MAINTENANCE] {_warningMinutes}-minute maintenance countdown broadcasted to online players ({secondsUntilStart}s).");
                     }
                 }
             }
@@ -185,7 +191,7 @@ namespace CSS.Core
 
             DateTime istNow = GetIstNow();
             DateTime todayStart = new DateTime(istNow.Year, istNow.Month, istNow.Day, _startHourIST, _startMinuteIST, 0);
-            DateTime todayWarning = todayStart.AddMinutes(-5);
+            DateTime todayWarning = todayStart.AddMinutes(-_warningMinutes);
 
             return istNow >= todayWarning && istNow < todayStart;
         }
@@ -197,7 +203,7 @@ namespace CSS.Core
 
             DateTime istNow = GetIstNow();
             DateTime todayStart = new DateTime(istNow.Year, istNow.Month, istNow.Day, _startHourIST, _startMinuteIST, 0);
-            DateTime todayWarning = todayStart.AddMinutes(-5);
+            DateTime todayWarning = todayStart.AddMinutes(-_warningMinutes);
 
             if (istNow >= todayWarning && istNow < todayStart)
             {

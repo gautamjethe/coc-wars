@@ -27,6 +27,7 @@
   <add key="DailyMaintenanceHourIST" value="11" />
   <add key="DailyMaintenanceMinuteIST" value="0" />
   <add key="DailyMaintenanceDurationMinutes" value="30" />
+  <add key="DailyMaintenanceWarningMinutes" value="10" />
   <!-- ___________________________________________________________________________________ -->
   <add key="AdminMessage" value="Welcome to Clash Of SL ! Visit http://facebook.com/skyprolk for more Infos"/>
       <!-- The AdminMessage will be shown in the Inbox of the Players-->
